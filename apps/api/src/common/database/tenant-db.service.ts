@@ -43,9 +43,15 @@ export class TenantDbService {
     }
   }
 
-  async runMigrations(tenantId: string, databaseUrl: string) {
-    const createTablesSQL = `
-      CREATE TABLE IF NOT EXISTS clients (
+  async runMigrations(tenantId: string, databaseUrl: string, schemaName?: string) {
+    const schema = schemaName || `tenant_${tenantId.replace(/-/g, '_').slice(0, 20)}`;
+
+    const sql = `
+      CREATE SCHEMA IF NOT EXISTS "${schema}";
+
+      SET search_path TO "${schema}";
+
+      CREATE TABLE IF NOT EXISTS "${schema}".clients (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
         document VARCHAR(20),
@@ -58,7 +64,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS services (
+      CREATE TABLE IF NOT EXISTS "${schema}".services (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
         description TEXT,
@@ -68,7 +74,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS users (
+      CREATE TABLE IF NOT EXISTS "${schema}".users (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         email VARCHAR(255) UNIQUE NOT NULL,
         password VARCHAR(255) NOT NULL,
@@ -79,7 +85,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS settings (
+      CREATE TABLE IF NOT EXISTS "${schema}".settings (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         company_name VARCHAR(255),
         logo TEXT,
@@ -93,7 +99,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS history (
+      CREATE TABLE IF NOT EXISTS "${schema}".history (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         invoice_number VARCHAR(50),
         client_name VARCHAR(255),
@@ -102,7 +108,7 @@ export class TenantDbService {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS vehicles (
+      CREATE TABLE IF NOT EXISTS "${schema}".vehicles (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         plate VARCHAR(20) NOT NULL,
         model VARCHAR(255),
@@ -114,7 +120,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS drivers (
+      CREATE TABLE IF NOT EXISTS "${schema}".drivers (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         name VARCHAR(255) NOT NULL,
         document VARCHAR(20),
@@ -126,11 +132,11 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS service_orders (
+      CREATE TABLE IF NOT EXISTS "${schema}".service_orders (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-        client_id UUID REFERENCES clients(id),
-        vehicle_id UUID REFERENCES vehicles(id),
-        driver_id UUID REFERENCES drivers(id),
+        client_id UUID REFERENCES "${schema}".clients(id),
+        vehicle_id UUID REFERENCES "${schema}".vehicles(id),
+        driver_id UUID REFERENCES "${schema}".drivers(id),
         description TEXT,
         status VARCHAR(50) DEFAULT 'pending',
         start_date TIMESTAMPTZ,
@@ -140,7 +146,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS agenda_servicos (
+      CREATE TABLE IF NOT EXISTS "${schema}".agenda_servicos (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         title VARCHAR(255) NOT NULL,
         description TEXT,
@@ -153,7 +159,7 @@ export class TenantDbService {
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS images (
+      CREATE TABLE IF NOT EXISTS "${schema}".images (
         id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
         filename VARCHAR(255) NOT NULL,
         data TEXT NOT NULL,
@@ -162,7 +168,7 @@ export class TenantDbService {
       );
     `;
 
-    return this.runQuery(tenantId, databaseUrl, createTablesSQL);
+    return this.runQuery(tenantId, databaseUrl, sql);
   }
 
   private evictIdleConnections() {

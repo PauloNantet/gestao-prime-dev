@@ -12,6 +12,10 @@ export class TenantsService {
     private tenantDb: TenantDbService,
   ) {}
 
+  private getMasterDbUrl(): string {
+    return process.env.MASTER_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/gestao_prime_master';
+  }
+
   async findAll() {
     return this.prisma.tenant.findMany({
       include: { subscription: { include: { plan: true } } },
@@ -46,7 +50,8 @@ export class TenantsService {
     if (!plan) throw new NotFoundException('Plano não encontrado');
 
     const databaseName = generateDatabaseName(slug);
-    const databaseUrl = dto.databaseUrl || `postgresql://postgres:postgres@localhost:5432/${databaseName}`;
+    const databaseUrl = dto.databaseUrl || this.getMasterDbUrl();
+    const schemaName = databaseName;
 
     const tenant = await this.prisma.tenant.create({
       data: {
@@ -73,7 +78,7 @@ export class TenantsService {
       },
     });
 
-    await this.tenantDb.runMigrations(tenant.id, databaseUrl);
+    await this.tenantDb.runMigrations(tenant.id, databaseUrl, schemaName);
 
     return this.findById(tenant.id);
   }
