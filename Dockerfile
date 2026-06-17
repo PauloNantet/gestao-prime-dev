@@ -14,6 +14,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN turbo build
+RUN ls -la apps/api/dist/ && ls -la apps/api/dist/main.js || echo "main.js not found in builder"
 
 FROM base AS runner
 COPY --from=deps /app/package.json /app/package-lock.json ./
@@ -22,15 +23,17 @@ COPY --from=deps /app/apps/web/package.json ./apps/web/
 COPY --from=deps /app/packages/shared/package.json ./packages/shared/
 RUN npm ci --omit=dev
 
-COPY --from=builder /app/apps/api/dist ./apps/api/dist
-COPY --from=builder /app/apps/web/dist ./apps/web/dist
-COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+COPY --from=builder /app/apps/api/dist /app/apps/api/dist
+COPY --from=builder /app/apps/web/dist /app/apps/web/dist
+COPY --from=builder /app/apps/api/prisma /app/apps/api/prisma
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
-COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
+COPY --from=builder /app/packages/shared/dist /app/packages/shared/dist
+RUN ls -la /app/apps/api/dist/ || echo "api/dist not found"
+RUN ls -la /app/apps/api/dist/main.js || echo "main.js not found in runner"
 
 EXPOSE 3001
 
 ENV NODE_ENV=production
 ENV API_PORT=3001
 
-CMD npx prisma db push --schema=apps/api/prisma/schema.prisma --accept-data-loss && node apps/api/dist/main.js
+CMD npx prisma db push --schema=apps/api/prisma/schema.prisma --accept-data-loss && node /app/apps/api/dist/main.js
