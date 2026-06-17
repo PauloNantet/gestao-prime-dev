@@ -36,39 +36,89 @@ enum UserRole {
   tenant_user
 }
 
+enum InvoiceStatus {
+  pending
+  paid
+  cancelled
+  overdue
+  refunded
+}
+
+enum DeploymentStatus {
+  pending
+  deploying
+  deployed
+  failed
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  githubRepo    String
+  githubBranch  String   @default("master")
+  icon          String?
+  monthlyPrice  Int      @default(0)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plans         PlanProduct[]
+  deployments   Deployment[]
+}
+
 model Plan {
   id            String   @id @default(uuid())
   name          String
   description   String?
-  price         Int
   interval      PlanInterval
   intervalCount Int      @default(1)
+  price         Int
   features      String[]
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  products      PlanProduct[]
   subscriptions Subscription[]
 }
 
-model Tenant {
-  id             String       @id @default(uuid())
-  name           String
-  slug           String       @unique
-  document       String?
-  email          String
-  phone          String?
-  status         TenantStatus @default(trial)
-  databaseUrl    String
-  databaseName   String       @unique
-  settings       Json         @default("{}")
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+model PlanProduct {
+  planId    String
+  productId String
+  createdAt DateTime @default(now())
 
-  subscriptionId String?
-  subscription   Subscription?
-  users          User[]
-  auditLogs      AuditLog[]
+  plan    Plan    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([planId, productId])
+}
+
+model Tenant {
+  id               String       @id @default(uuid())
+  name             String
+  slug             String       @unique
+  document         String?
+  email            String
+  phone            String?
+  status           TenantStatus @default(trial)
+  databaseUrl      String
+  databaseName     String       @unique
+  settings         Json         @default("{}")
+
+  asaasCustomerId  String?
+  asaasSubscriptionId String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  subscriptionId   String?
+  subscription     Subscription?
+  users            User[]
+  auditLogs        AuditLog[]
+  invoices         Invoice[]
+  deployments      Deployment[]
 }
 
 model Subscription {
@@ -82,8 +132,30 @@ model Subscription {
   createdAt   DateTime           @default(now())
   updatedAt   DateTime           @updatedAt
 
-  tenant Tenant  @relation(fields: [tenantId], references: [id])
-  plan   Plan    @relation(fields: [planId], references: [id])
+  tenant    Tenant    @relation(fields: [tenantId], references: [id])
+  plan      Plan      @relation(fields: [planId], references: [id])
+  invoices  Invoice[]
+}
+
+model Invoice {
+  id             String         @id @default(uuid())
+  tenantId       String
+  subscriptionId String?
+  amount         Int
+  status         InvoiceStatus  @default(pending)
+  paymentMethod  String?
+  pixQrCode      String?
+  pixCopiaCola   String?
+  asaasInvoiceId String?
+  dueDate        DateTime
+  paidAt         DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  tenant       Tenant       @relation(fields: [tenantId], references: [id])
+  subscription Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([tenantId, status])
 }
 
 model User {
@@ -118,4 +190,22 @@ model AuditLog {
 
   @@index([tenantId, createdAt])
   @@index([userId])
+}
+
+model Deployment {
+  id              String           @id @default(uuid())
+  tenantId        String
+  productId       String
+  status          DeploymentStatus @default(pending)
+  railwayServiceId String?
+  railwayUrl      String?
+  errorMessage    String?
+  deployedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, status])
 }

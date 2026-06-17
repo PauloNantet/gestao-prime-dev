@@ -6,6 +6,8 @@ import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TenantsPage } from './pages/TenantsPage';
 import { PlansPage } from './pages/PlansPage';
+import { ProductsPage } from './pages/ProductsPage';
+import { CheckoutPage } from './pages/CheckoutPage';
 import { MonitoringPage } from './pages/MonitoringPage';
 import { getToken } from './lib/auth';
 
@@ -34,7 +36,9 @@ export default function App() {
         <Route index element={<DashboardPage />} />
         <Route path="tenants" element={<TenantsPage />} />
         <Route path="plans" element={<PlansPage />} />
+        <Route path="products" element={<ProductsPage />} />
         <Route path="monitoring" element={<MonitoringPage />} />
+        <Route path="checkout/:tenantId" element={<CheckoutPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

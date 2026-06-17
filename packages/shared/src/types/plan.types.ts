@@ -14,6 +14,7 @@ export interface Plan {
   intervalCount: number;
   features: string[];
   active: boolean;
+  products?: { product: { id: string; name: string; slug: string; githubRepo: string } }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -25,6 +26,7 @@ export interface CreatePlanDto {
   interval: PlanInterval;
   intervalCount: number;
   features?: string[];
+  productIds?: string[];
 }
 
 export interface UpdatePlanDto extends Partial<CreatePlanDto> {

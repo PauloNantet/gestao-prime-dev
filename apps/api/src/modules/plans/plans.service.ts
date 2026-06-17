@@ -7,40 +7,66 @@ export class PlansService {
   constructor(private prisma: PrismaService) {}
 
   async findAll() {
-    return this.prisma.plan.findMany({ orderBy: { price: 'asc' } });
+    return this.prisma.plan.findMany({
+      orderBy: { price: 'asc' },
+      include: { products: { include: { product: true } } },
+    });
   }
 
   async findActive() {
     return this.prisma.plan.findMany({
       where: { active: true },
       orderBy: { price: 'asc' },
+      include: { products: { include: { product: true } } },
     });
   }
 
   async findById(id: string) {
-    const plan = await this.prisma.plan.findUnique({ where: { id } });
+    const plan = await this.prisma.plan.findUnique({
+      where: { id },
+      include: { products: { include: { product: true } } },
+    });
     if (!plan) throw new NotFoundException('Plano não encontrado');
     return plan;
   }
 
   async create(dto: CreatePlanDto) {
-    return this.prisma.plan.create({
+    const { productIds, ...planData } = dto;
+    const plan = await this.prisma.plan.create({
       data: {
-        name: dto.name,
-        description: dto.description,
-        price: Math.round(dto.price * 100),
-        interval: dto.interval,
-        intervalCount: dto.intervalCount,
-        features: dto.features || [],
+        name: planData.name,
+        description: planData.description,
+        price: Math.round(planData.price * 100),
+        interval: planData.interval,
+        intervalCount: planData.intervalCount,
+        features: planData.features || [],
+        products: {
+          create: (productIds || []).map((productId: string) => ({ productId })),
+        },
       },
+      include: { products: { include: { product: true } } },
     });
+    return plan;
   }
 
   async update(id: string, dto: UpdatePlanDto) {
     await this.findById(id);
-    const data: any = { ...dto };
-    if (dto.price !== undefined) data.price = Math.round(dto.price * 100);
-    return this.prisma.plan.update({ where: { id }, data });
+    const { productIds, ...planData } = dto;
+    const data: any = { ...planData };
+    if (planData.price !== undefined) data.price = Math.round(planData.price * 100);
+
+    if (productIds) {
+      await this.prisma.planProduct.deleteMany({ where: { planId: id } });
+      await this.prisma.planProduct.createMany({
+        data: (productIds || []).map((productId: string) => ({ planId: id, productId })),
+      });
+    }
+
+    return this.prisma.plan.update({
+      where: { id },
+      data,
+      include: { products: { include: { product: true } } },
+    });
   }
 
   async remove(id: string) {
