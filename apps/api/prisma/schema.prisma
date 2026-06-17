@@ -1,0 +1,121 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MASTER_DATABASE_URL")
+}
+
+enum PlanInterval {
+  monthly
+  quarterly
+  semestral
+  yearly
+}
+
+enum TenantStatus {
+  active
+  suspended
+  cancelled
+  trial
+}
+
+enum SubscriptionStatus {
+  active
+  past_due
+  cancelled
+  expired
+  trial
+}
+
+enum UserRole {
+  super_admin
+  admin
+  tenant_admin
+  tenant_user
+}
+
+model Plan {
+  id            String   @id @default(uuid())
+  name          String
+  description   String?
+  price         Int
+  interval      PlanInterval
+  intervalCount Int      @default(1)
+  features      String[]
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  subscriptions Subscription[]
+}
+
+model Tenant {
+  id             String       @id @default(uuid())
+  name           String
+  slug           String       @unique
+  document       String?
+  email          String
+  phone          String?
+  status         TenantStatus @default(trial)
+  databaseUrl    String
+  databaseName   String       @unique
+  settings       Json         @default("{}")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  subscriptionId String?
+  subscription   Subscription?
+  users          User[]
+  auditLogs      AuditLog[]
+}
+
+model Subscription {
+  id          String             @id @default(uuid())
+  tenantId    String             @unique
+  planId      String
+  status      SubscriptionStatus @default(trial)
+  startsAt    DateTime           @default(now())
+  endsAt      DateTime
+  cancelledAt DateTime?
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  plan   Plan    @relation(fields: [planId], references: [id])
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(tenant_user)
+  active    Boolean  @default(true)
+  tenantId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant?   @relation(fields: [tenantId], references: [id])
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  metadata  Json?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([userId])
+}
