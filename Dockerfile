@@ -25,6 +25,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/web/dist ./apps/web/dist
 COPY --from=builder /app/apps/api/prisma ./apps/api/prisma
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 
 EXPOSE 3001
