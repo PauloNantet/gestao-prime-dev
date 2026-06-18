@@ -97,6 +97,13 @@ export class TenantsService {
 
   async remove(id: string) {
     await this.findById(id);
+
+    await this.prisma.auditLog.deleteMany({ where: { tenantId: id } });
+    await this.prisma.deployment.deleteMany({ where: { tenantId: id } });
+    await this.prisma.invoice.deleteMany({ where: { tenantId: id } });
+    await this.prisma.user.deleteMany({ where: { tenantId: id } });
+    await this.prisma.subscription.deleteMany({ where: { tenantId: id } });
+
     await this.prisma.tenant.delete({ where: { id } });
     return { message: 'Tenant removido com sucesso' };
   }

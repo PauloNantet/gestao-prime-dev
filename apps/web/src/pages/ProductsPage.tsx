@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../lib/api';
 
 export function ProductsPage() {
+  const navigate = useNavigate();
   const [products, setProducts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -39,7 +41,7 @@ export function ProductsPage() {
         {loading ? <div className="col-span-full p-8 text-center text-gray-500">Carregando...</div>
         : products.length === 0 ? <div className="col-span-full p-8 text-center text-gray-500">Nenhum produto cadastrado</div>
         : products.map((p: any) => (
-          <div key={p.id} className={`bg-white rounded-xl shadow-sm border p-5 ${!p.active ? 'opacity-60' : ''}`}>
+          <div key={p.id} onClick={() => navigate(`/products/${p.id}/plans`)} className={`bg-white rounded-xl shadow-sm border p-5 cursor-pointer hover:shadow-md transition-shadow ${!p.active ? 'opacity-60' : ''}`}>
             <div className="flex items-start justify-between mb-3">
               <div>
                 <h3 className="font-bold text-gray-800">{p.icon || '📦'} {p.name}</h3>
@@ -52,6 +54,9 @@ export function ProductsPage() {
               <span className="font-medium text-gray-700">R$ {(p.monthlyPrice / 100).toFixed(2)}</span>/mês base
             </div>
             <div className="text-xs text-gray-400 mt-2">Branch: {p.githubBranch}</div>
+            <div className="mt-3 text-xs text-blue-700 font-medium flex items-center gap-1">
+              Ver planos →
+            </div>
           </div>
         ))}
       </div>

@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Delete, Param, Body } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Param, Body, Query } from '@nestjs/common';
 import { PlansService } from './plans.service';
 import { CreatePlanDto, UpdatePlanDto } from '@gestao-prime/shared';
 
@@ -7,7 +7,8 @@ export class PlansController {
   constructor(private plans: PlansService) {}
 
   @Get()
-  findAll() {
+  findAll(@Query('productId') productId?: string) {
+    if (productId) return this.plans.findByProduct(productId);
     return this.plans.findAll();
   }
 

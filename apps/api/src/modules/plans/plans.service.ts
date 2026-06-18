@@ -13,6 +13,14 @@ export class PlansService {
     });
   }
 
+  async findByProduct(productId: string) {
+    return this.prisma.plan.findMany({
+      where: { products: { some: { productId } } },
+      orderBy: { price: 'asc' },
+      include: { products: { include: { product: true } } },
+    });
+  }
+
   async findActive() {
     return this.prisma.plan.findMany({
       where: { active: true },
@@ -71,6 +79,8 @@ export class PlansService {
 
   async remove(id: string) {
     await this.findById(id);
+    await this.prisma.planProduct.deleteMany({ where: { planId: id } });
+    await this.prisma.subscription.deleteMany({ where: { planId: id } });
     await this.prisma.plan.delete({ where: { id } });
     return { message: 'Plano removido com sucesso' };
   }

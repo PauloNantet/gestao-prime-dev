@@ -7,8 +7,10 @@ import { DashboardPage } from './pages/DashboardPage';
 import { TenantsPage } from './pages/TenantsPage';
 import { PlansPage } from './pages/PlansPage';
 import { ProductsPage } from './pages/ProductsPage';
+import { ProductPlansPage } from './pages/ProductPlansPage';
 import { CheckoutPage } from './pages/CheckoutPage';
 import { MonitoringPage } from './pages/MonitoringPage';
+import { RailwayPage } from './pages/RailwayPage';
 import { getToken } from './lib/auth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -37,7 +39,9 @@ export default function App() {
         <Route path="tenants" element={<TenantsPage />} />
         <Route path="plans" element={<PlansPage />} />
         <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:productId/plans" element={<ProductPlansPage />} />
         <Route path="monitoring" element={<MonitoringPage />} />
+        <Route path="railway" element={<RailwayPage />} />
         <Route path="checkout/:tenantId" element={<CheckoutPage />} />
       </Route>
 

@@ -15,6 +15,73 @@ export class DeployService {
 
   constructor(private prisma: PrismaService) {}
 
+  private async railwayRequest<T>(query: string, variables?: Record<string, any>): Promise<T> {
+    const res = await fetch('https://backboard.railway.app/graphql/v2', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.RAILWAY_API_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query, variables }),
+    });
+    const data = await res.json();
+    if (data.errors) throw new Error(data.errors[0].message);
+    return data.data;
+  }
+
+  async getRailwayProjects() {
+    if (!this.RAILWAY_API_TOKEN) return [];
+    const query = `
+      query {
+        projects {
+          edges {
+            node {
+              id
+              name
+              description
+              createdAt
+              updatedAt
+            }
+          }
+        }
+      }
+    `;
+    const data = await this.railwayRequest<{ projects: { edges: Array<{ node: any }> } }>(query);
+    return (data.projects?.edges || []).map(e => e.node);
+  }
+
+  async getProjectEnvironments(projectId: string) {
+    if (!this.RAILWAY_API_TOKEN) return [];
+    const query = `
+      query GetProject($projectId: String!) {
+        project(id: $projectId) {
+          environments {
+            edges {
+              node {
+                id
+                name
+              }
+            }
+          }
+        }
+      }
+    `;
+    const data = await this.railwayRequest<{ project: { environments: { edges: Array<{ node: any }> } } }>(query, { projectId });
+    return data.project?.environments?.edges?.map(e => e.node) || [];
+  }
+
+  async getProjectVariables(projectId: string, environmentId: string) {
+    if (!this.RAILWAY_API_TOKEN) return [];
+    const query = `
+      query GetVariables($projectId: String!, $environmentId: String!) {
+        variables(projectId: $projectId, environmentId: $environmentId)
+      }
+    `;
+    const data = await this.railwayRequest<{ variables: Record<string, string> }>(query, { projectId, environmentId });
+    if (!data.variables) return [];
+    return Object.entries(data.variables).map(([name, value]) => ({ name, value }));
+  }
+
   async deployProduct(tenantId: string, tenantSlug: string, product: ProductInfo) {
     const deployment = await this.prisma.deployment.create({
       data: {

@@ -7,6 +7,7 @@ const navItems = [
   { to: '/products', label: 'Produtos', icon: '📦' },
   { to: '/plans', label: 'Planos', icon: '📋' },
   { to: '/tenants', label: 'Clientes', icon: '🏢' },
+  { to: '/railway', label: 'Railway', icon: '🚂' },
   { to: '/monitoring', label: 'Monitoramento', icon: '📡' },
 ];
 
