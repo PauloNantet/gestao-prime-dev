@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider = "sqlite"
   url      = env("MASTER_DATABASE_URL")
 }
 
@@ -16,6 +16,7 @@ enum PlanInterval {
 
 enum TenantStatus {
   active
+  inactive
   suspended
   cancelled
   trial
@@ -60,12 +61,15 @@ model Product {
   githubBranch  String   @default("master")
   icon          String?
   monthlyPrice  Int      @default(0)
+  basePrice     Int      @default(0)
+  projectId     String?
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   plans         PlanProduct[]
   deployments   Deployment[]
+  tenants       TenantProduct[]
 }
 
 model Plan {
@@ -75,7 +79,12 @@ model Plan {
   interval      PlanInterval
   intervalCount Int      @default(1)
   price         Int
-  features      String[]
+  features      String
+  maxUsers      Int      @default(1)
+  unlimitedUsers Boolean @default(false)
+  hasSupport    Boolean  @default(false)
+  hasUpdates    Boolean  @default(false)
+  savings       String   @default("")
   active        Boolean  @default(true)
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
@@ -95,6 +104,17 @@ model PlanProduct {
   @@id([planId, productId])
 }
 
+model TenantProduct {
+  tenantId  String
+  productId String
+  createdAt DateTime @default(now())
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([tenantId, productId])
+}
+
 model Tenant {
   id               String       @id @default(uuid())
   name             String
@@ -105,7 +125,7 @@ model Tenant {
   status           TenantStatus @default(trial)
   databaseUrl      String
   databaseName     String       @unique
-  settings         Json         @default("{}")
+    settings         String       @default("{}")
 
   asaasCustomerId  String?
   asaasSubscriptionId String?
@@ -119,6 +139,7 @@ model Tenant {
   auditLogs        AuditLog[]
   invoices         Invoice[]
   deployments      Deployment[]
+  products         TenantProduct[]
 }
 
 model Subscription {
@@ -180,7 +201,7 @@ model AuditLog {
   action    String
   entity    String
   entityId  String?
-  metadata  Json?
+  metadata  String?
   ip        String?
   userAgent String?
   createdAt DateTime @default(now())
@@ -190,6 +211,19 @@ model AuditLog {
 
   @@index([tenantId, createdAt])
   @@index([userId])
+}
+
+model ProjectDatabase {
+  id              String   @id @default(uuid())
+  projectId       String
+  environmentId   String
+  projectName     String
+  environmentName String
+  databaseUrl     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([projectId, environmentId])
 }
 
 model Deployment {

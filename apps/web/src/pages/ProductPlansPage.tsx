@@ -8,7 +8,8 @@ const intervalLabels: Record<string, string> = {
 
 const emptyForm = {
   name: '', description: '', price: '', interval: 'monthly' as string,
-  intervalCount: '1', features: '', productIds: [] as string[],
+  intervalCount: '1', productIds: [] as string[],
+  maxUsers: '1', hasSupport: false, hasUpdates: false, unlimitedUsers: false,
 };
 
 export function ProductPlansPage() {
@@ -52,8 +53,11 @@ export function ProductPlansPage() {
       price: (plan.price / 100).toString(),
       interval: plan.interval,
       intervalCount: plan.intervalCount.toString(),
-      features: plan.features.join('\n'),
       productIds: plan.products?.map((pp: any) => pp.product.id) || [productId!],
+      maxUsers: (plan.maxUsers || 1).toString(),
+      hasSupport: plan.hasSupport ?? false,
+      hasUpdates: plan.hasUpdates ?? false,
+      unlimitedUsers: plan.maxUsers >= 999999,
     });
     setShowModal(true);
   };
@@ -66,7 +70,10 @@ export function ProductPlansPage() {
         ...form,
         price: parseFloat(form.price),
         intervalCount: parseInt(form.intervalCount),
-        features: form.features.split('\n').filter(Boolean),
+        features: [],
+        maxUsers: form.unlimitedUsers ? 999999 : parseInt(form.maxUsers) || 1,
+        hasSupport: !!form.hasSupport,
+        hasUpdates: !!form.hasUpdates,
       };
 
       if (editingPlan) {
@@ -161,15 +168,14 @@ export function ProductPlansPage() {
               <div className="mb-4">
                 <span className="text-3xl font-bold text-gray-800">R$ {(plan.price / 100).toFixed(2)}</span>
                 <span className="text-gray-500 text-sm ml-1">/{plan.intervalCount > 1 ? `${plan.intervalCount} ` : ''}{intervalLabels[plan.interval]}</span>
+                {plan.savings ? <span className="block text-xs text-emerald-600 font-medium mt-1">Economia de {plan.savings}</span> : null}
               </div>
 
-              {plan.features?.length > 0 && (
-                <ul className="space-y-2 text-sm text-gray-600 mb-4">
-                  {plan.features.map((f: string, i: number) => (
-                    <li key={i} className="flex items-center gap-2"><span className="text-green-500">✓</span> {f}</li>
-                  ))}
-                </ul>
-              )}
+              <div className="flex flex-wrap gap-3 text-xs text-gray-500 mb-3">
+                <span>👥 {plan.unlimitedUsers || plan.maxUsers >= 999999 ? 'Ilimitados' : `${plan.maxUsers} usuários`}</span>
+                {plan.hasSupport && <span>✅ Suporte</span>}
+                {plan.hasUpdates && <span>🔄 Atualizações</span>}
+              </div>
 
               {plan.products?.length > 0 && (
                 <div className="pt-3 border-t border-gray-100">
@@ -197,7 +203,7 @@ export function ProductPlansPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
               <input required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-3 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Preço (R$)</label>
                 <input type="number" step="0.01" required value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" />
@@ -211,10 +217,25 @@ export function ProductPlansPage() {
                   <option value="yearly">Anual</option>
                 </select>
               </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Max. User</label>
+                <input type="number" min="1" value={form.maxUsers} disabled={form.unlimitedUsers} onChange={(e) => setForm({ ...form, maxUsers: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed" />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Recursos (um por linha)</label>
-              <textarea rows={3} value={form.features} onChange={(e) => setForm({ ...form, features: e.target.value })} className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none" placeholder="Suporte prioritário&#10;API ilimitada" />
+
+            <div className="flex flex-wrap items-center gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.unlimitedUsers} onChange={(e) => setForm({ ...form, unlimitedUsers: e.target.checked })} className="rounded border-gray-300 text-blue-900 focus:ring-blue-500" />
+                <span className="text-sm font-medium text-gray-700">Usuários ilimitados</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.hasSupport} onChange={(e) => setForm({ ...form, hasSupport: e.target.checked })} className="rounded border-gray-300 text-blue-900 focus:ring-blue-500" />
+                <span className="text-sm font-medium text-gray-700">Suporte</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input type="checkbox" checked={form.hasUpdates} onChange={(e) => setForm({ ...form, hasUpdates: e.target.checked })} className="rounded border-gray-300 text-blue-900 focus:ring-blue-500" />
+                <span className="text-sm font-medium text-gray-700">Atualizações</span>
+              </label>
             </div>
 
             <div className="flex gap-3 pt-2">

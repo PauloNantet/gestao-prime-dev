@@ -13,6 +13,11 @@ export interface Plan {
   interval: PlanInterval;
   intervalCount: number;
   features: string[];
+  maxUsers: number;
+  unlimitedUsers: boolean;
+  hasSupport: boolean;
+  hasUpdates: boolean;
+  savings: string;
   active: boolean;
   products?: { product: { id: string; name: string; slug: string; githubRepo: string } }[];
   createdAt: string;
@@ -27,6 +32,10 @@ export interface CreatePlanDto {
   intervalCount: number;
   features?: string[];
   productIds?: string[];
+  maxUsers?: number;
+  unlimitedUsers?: boolean;
+  hasSupport?: boolean;
+  hasUpdates?: boolean;
 }
 
 export interface UpdatePlanDto extends Partial<CreatePlanDto> {

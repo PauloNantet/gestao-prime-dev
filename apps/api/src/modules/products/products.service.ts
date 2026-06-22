@@ -39,10 +39,12 @@ export class ProductsService {
         name: dto.name,
         slug,
         description: dto.description,
-        githubRepo: dto.githubRepo,
+        githubRepo: dto.githubRepo || '',
         githubBranch: dto.githubBranch || 'master',
         icon: dto.icon,
         monthlyPrice: dto.monthlyPrice ? Math.round(dto.monthlyPrice * 100) : 0,
+        basePrice: dto.basePrice ? Math.round(dto.basePrice * 100) : 0,
+        projectId: dto.projectId,
       },
     });
   }
@@ -51,6 +53,7 @@ export class ProductsService {
     await this.findById(id);
     const data: any = { ...dto };
     if (dto.monthlyPrice !== undefined) data.monthlyPrice = Math.round(dto.monthlyPrice * 100);
+    if (dto.basePrice !== undefined) data.basePrice = Math.round(dto.basePrice * 100);
     return this.prisma.product.update({ where: { id }, data });
   }
 

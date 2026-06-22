@@ -34,7 +34,7 @@ export function LoginPage() {
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
         <input
-          type="email"
+          type="text"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}

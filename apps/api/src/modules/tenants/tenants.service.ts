@@ -1,5 +1,4 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantDbService } from '../../common/database/tenant-db.service';
 import { slugify, generateDatabaseName } from '@gestao-prime/shared';
@@ -13,14 +12,26 @@ export class TenantsService {
   ) {}
 
   private getMasterDbUrl(): string {
-    return process.env.MASTER_DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/gestao_prime_master';
+    return process.env.MASTER_DATABASE_URL || 'file:./prisma/dev.db';
+  }
+
+  private parseSettings(settings: string): Record<string, unknown> {
+    try { return JSON.parse(settings); } catch { return {}; }
+  }
+
+  private formatTenant(t: any) {
+    return { ...t, settings: this.parseSettings(t.settings) };
   }
 
   async findAll() {
-    return this.prisma.tenant.findMany({
-      include: { subscription: { include: { plan: true } } },
+    const tenants = await this.prisma.tenant.findMany({
+      include: {
+        subscription: { include: { plan: true } },
+        products: { include: { product: { select: { id: true, name: true, icon: true } } } },
+      },
       orderBy: { createdAt: 'desc' },
     });
+    return tenants.map(t => this.formatTenant(t));
   }
 
   async findById(id: string) {
@@ -29,7 +40,7 @@ export class TenantsService {
       include: { subscription: { include: { plan: true } }, users: { select: { id: true, email: true, name: true, role: true } } },
     });
     if (!tenant) throw new NotFoundException('Tenant não encontrado');
-    return tenant;
+    return this.formatTenant(tenant);
   }
 
   async findBySlug(slug: string) {
@@ -62,7 +73,11 @@ export class TenantsService {
         phone: dto.phone,
         databaseUrl,
         databaseName,
-        status: 'trial',
+        status: (dto.status as any) || 'trial',
+        ...(dto.settings ? { settings: JSON.stringify(dto.settings) } : {}),
+        ...(dto.productIds?.length
+          ? { products: { create: dto.productIds.map(pid => ({ productId: pid })) } }
+          : {}),
       },
     });
 
@@ -85,14 +100,31 @@ export class TenantsService {
 
   async update(id: string, dto: UpdateTenantDto) {
     await this.findById(id);
-    const { settings, ...rest } = dto;
-    return this.prisma.tenant.update({
-      where: { id },
-      data: {
-        ...rest,
-        ...(settings ? { settings: settings as Prisma.InputJsonValue } : {}),
-      },
-    });
+    const { settings, productIds, planId, ...rest } = dto;
+    const data: any = {
+      ...rest,
+      ...(settings ? { settings: JSON.stringify(settings) } : {}),
+    };
+    if (productIds) {
+      await this.prisma.tenantProduct.deleteMany({ where: { tenantId: id } });
+      if (productIds.length > 0) {
+        await this.prisma.tenantProduct.createMany({
+          data: productIds.map(pid => ({ tenantId: id, productId: pid })),
+        });
+      }
+    }
+    if (planId) {
+      const plan = await this.prisma.plan.findUnique({ where: { id: planId } });
+      if (!plan) throw new NotFoundException('Plano não encontrado');
+      const subscription = await this.prisma.subscription.findUnique({ where: { tenantId: id } });
+      if (subscription) {
+        await this.prisma.subscription.update({
+          where: { tenantId: id },
+          data: { planId },
+        });
+      }
+    }
+    return this.prisma.tenant.update({ where: { id }, data });
   }
 
   async remove(id: string) {

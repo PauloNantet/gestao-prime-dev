@@ -84,13 +84,16 @@ export function PlansPage() {
               </div>
             )}
 
-            {plan.features?.length > 0 && (
-              <ul className="space-y-2 text-sm text-gray-600">
-                {plan.features.map((f: string, i: number) => (
-                  <li key={i} className="flex items-center gap-2"><span className="text-green-500">✓</span> {f}</li>
-                ))}
-              </ul>
-            )}
+            {(() => {
+              const features = typeof plan.features === 'string' ? JSON.parse(plan.features) : plan.features;
+              return features?.length > 0 ? (
+                <ul className="space-y-2 text-sm text-gray-600">
+                  {features.map((f: string, i: number) => (
+                    <li key={i} className="flex items-center gap-2"><span className="text-green-500">✓</span> {f}</li>
+                  ))}
+                </ul>
+              ) : null;
+            })()}
           </div>
         ))}
       </div>

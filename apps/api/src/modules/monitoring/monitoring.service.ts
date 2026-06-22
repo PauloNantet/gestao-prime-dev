@@ -1,5 +1,4 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
 import type { ActionType } from '@gestao-prime/shared';
 
@@ -20,7 +19,7 @@ export class MonitoringService {
     return this.prisma.auditLog.create({
       data: {
         ...data,
-        metadata: data.metadata as Prisma.InputJsonValue,
+        metadata: data.metadata ? JSON.stringify(data.metadata) : null,
       },
     });
   }
