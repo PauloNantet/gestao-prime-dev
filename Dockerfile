@@ -35,4 +35,4 @@ EXPOSE 3001
 ENV NODE_ENV=production
 ENV API_PORT=3001
 
-CMD npx prisma db push --schema=apps/api/prisma/schema.prisma --accept-data-loss && node /app/apps/api/dist/main.js
+CMD npx prisma db push --schema=apps/api/prisma/schema.prisma --accept-data-loss || true; node /app/apps/api/dist/main.js
