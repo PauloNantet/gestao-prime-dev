@@ -24,6 +24,7 @@ enum TenantStatus {
 
 enum SubscriptionStatus {
   active
+  inactive
   past_due
   cancelled
   expired
