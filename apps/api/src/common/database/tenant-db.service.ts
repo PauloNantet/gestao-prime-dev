@@ -166,6 +166,36 @@ export class TenantDbService {
         mime_type VARCHAR(50),
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
+
+      CREATE TABLE IF NOT EXISTS "${schema}".plans (
+        id SERIAL PRIMARY KEY,
+        name VARCHAR(255) NOT NULL,
+        description TEXT,
+        period_months INTEGER NOT NULL,
+        monthly_price DECIMAL(10,2) NOT NULL,
+        savings VARCHAR(50) DEFAULT '0%',
+        total_price DECIMAL(10,2) NOT NULL,
+        max_users INTEGER DEFAULT 1,
+        unlimited_users BOOLEAN DEFAULT false,
+        has_support BOOLEAN DEFAULT false,
+        has_updates BOOLEAN DEFAULT false,
+        is_active BOOLEAN DEFAULT true,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
+
+      CREATE TABLE IF NOT EXISTS "${schema}".subscriptions (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER,
+        plan_id INTEGER REFERENCES "${schema}".plans(id),
+        status VARCHAR(20) DEFAULT 'active',
+        start_date DATE NOT NULL,
+        end_date DATE NOT NULL,
+        days_remaining INTEGER GENERATED ALWAYS AS (end_date - CURRENT_DATE) STORED,
+        cancelled_at TIMESTAMPTZ,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW()
+      );
     `;
 
     return this.runQuery(tenantId, databaseUrl, sql);

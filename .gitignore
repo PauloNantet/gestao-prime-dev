@@ -6,3 +6,5 @@ dist/
 .turbo/
 coverage/
 *.tsbuildinfo
+*.db
+test-pg.js

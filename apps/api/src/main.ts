@@ -2,6 +2,11 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
+
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+
 import { AppModule } from './app.module';
 
 async function bootstrap() {

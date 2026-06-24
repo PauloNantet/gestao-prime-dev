@@ -7,9 +7,9 @@
     "build": "nest build",
     "start": "node dist/main",
     "lint": "tsc --noEmit",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:seed": "ts-node prisma/seed.ts"
+    "prisma:generate": "dotenv -e ../../.env -- prisma generate",
+    "prisma:migrate": "dotenv -e ../../.env -- prisma migrate dev",
+    "prisma:seed": "dotenv -e ../../.env -- ts-node prisma/seed.ts"
   },
   "dependencies": {
     "@gestao-prime/shared": "*",
