@@ -57,7 +57,7 @@ export class SubscriptionsService {
 
     return this.prisma.subscription.update({
       where: { tenantId },
-      data: { status: 'cancelled', cancelledAt: new Date() },
+      data: { status: 'inactive', cancelledAt: new Date() },
     });
   }
 }
