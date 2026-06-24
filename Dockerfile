@@ -12,6 +12,7 @@ RUN npm ci
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+ENV MASTER_DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN turbo build
 
@@ -25,6 +26,7 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/apps/api/dist /app/apps/api/dist
 COPY --from=builder /app/apps/web/dist /app/apps/web/dist
 COPY --from=builder /app/apps/api/prisma /app/apps/api/prisma
+ENV MASTER_DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 COPY --from=builder /app/packages/shared/dist /app/packages/shared/dist
 
