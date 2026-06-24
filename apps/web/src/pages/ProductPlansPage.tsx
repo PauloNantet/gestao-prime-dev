@@ -1,10 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../lib/api';
-
-const intervalLabels: Record<string, string> = {
-  monthly: 'mensal', quarterly: 'trimestral', semestral: 'semestral', yearly: 'anual',
-};
+import { intervalLabels } from '../lib/constants';
 
 const emptyForm = {
   name: '', description: '', price: '', interval: 'monthly' as string,
@@ -101,15 +98,6 @@ export function ProductPlansPage() {
     } catch (e: any) {
       setError(e.response?.data?.message || 'Erro ao excluir plano');
     }
-  };
-
-  const toggleProduct = (id: string) => {
-    setForm((f: any) => ({
-      ...f,
-      productIds: f.productIds.includes(id)
-        ? f.productIds.filter((i: string) => i !== id)
-        : [...f.productIds, id],
-    }));
   };
 
   if (loading) {

@@ -10,12 +10,6 @@ export const slugify = (text: string): string =>
 export const generateDatabaseName = (slug: string): string =>
   `tenant_${slug.replace(/-/g, '_')}`;
 
-export const formatCurrency = (value: number): string =>
-  new Intl.NumberFormat('pt-BR', {
-    style: 'currency',
-    currency: 'BRL',
-  }).format(value);
-
 export const calculateEndDate = (
   startDate: Date,
   interval: string,

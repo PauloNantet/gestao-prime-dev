@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getToken, logout } from './auth';
 
 const api = axios.create({
   baseURL: '/api',
@@ -6,7 +7,7 @@ const api = axios.create({
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('@gp:token');
+  const token = getToken();
   if (token) config.headers.Authorization = `Bearer ${token}`;
   return config;
 });
@@ -15,9 +16,7 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     if (err.response?.status === 401) {
-      localStorage.removeItem('@gp:token');
-      localStorage.removeItem('@gp:user');
-      window.location.href = '/login';
+      logout();
     }
     return Promise.reject(err);
   },

@@ -1,26 +1,17 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { ExpressAdapter } from '@nestjs/platform-express';
-import express from 'express';
+import express, { type Request, type Response, type NextFunction } from 'express';
 import * as dotenv from 'dotenv';
-import * as path from 'path';
+import { resolve, join } from 'path';
+import { existsSync, statSync } from 'fs';
 
-dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
+dotenv.config({ path: resolve(__dirname, '../../../.env') });
 
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const server = express();
-
-  if (process.env.NODE_ENV === 'production') {
-    const path = await import('path');
-    const fs = await import('fs');
-
-    const webDist = path.resolve('./apps/web/dist');
-    if (fs.existsSync(webDist)) {
-      server.use(express.static(webDist));
-    }
-  }
 
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
@@ -42,20 +33,20 @@ async function bootstrap() {
   const port = process.env.PORT || process.env.API_PORT || 3001;
 
   if (process.env.NODE_ENV === 'production') {
-    const path = await import('path');
-    const fs = await import('fs');
-    const webDist = path.resolve('./apps/web/dist');
+    const webDist = resolve('./apps/web/dist');
 
-    app.use((req: any, res: any, next: any) => {
-      if (req.path.startsWith('/api')) return next();
-      if (fs.existsSync(webDist)) {
-        const indexPath = path.join(webDist, 'index.html');
-        if (fs.existsSync(indexPath)) {
+    if (existsSync(webDist) && statSync(webDist).isDirectory()) {
+      server.use(express.static(webDist));
+
+      app.use((req: Request, res: Response, next: NextFunction) => {
+        if (req.path.startsWith('/api')) return next();
+        const indexPath = join(webDist, 'index.html');
+        if (existsSync(indexPath)) {
           return res.sendFile(indexPath);
         }
-      }
-      next();
-    });
+        next();
+      });
+    }
   }
 
   await app.listen(port);

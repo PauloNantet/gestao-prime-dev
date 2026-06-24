@@ -1,4 +1,4 @@
-import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
 import { TenantDbService } from '../../common/database/tenant-db.service';
 import { slugify, generateDatabaseName } from '@gestao-prime/shared';
@@ -7,6 +7,8 @@ import { Pool } from 'pg';
 
 @Injectable()
 export class TenantsService {
+  private readonly logger = new Logger(TenantsService.name);
+
   constructor(
     private prisma: PrismaService,
     private tenantDb: TenantDbService,
@@ -62,12 +64,6 @@ export class TenantsService {
     });
     if (!tenant) throw new NotFoundException('Tenant não encontrado');
     return this.formatTenant(tenant);
-  }
-
-  async findBySlug(slug: string) {
-    const tenant = await this.prisma.tenant.findUnique({ where: { slug } });
-    if (!tenant) throw new NotFoundException('Tenant não encontrado');
-    return tenant;
   }
 
   async create(dto: CreateTenantDto) {
@@ -137,7 +133,7 @@ export class TenantsService {
             ],
           );
           externalPlanId = insertPlan.rows[0].id;
-          console.log('[TenantsService] Plano criado no DB externo:', plan.name, '(id:', externalPlanId, ')');
+          this.logger.log(`Plano criado no DB externo: ${plan.name} (id: ${externalPlanId})`);
         }
 
         const now = new Date();
@@ -149,11 +145,11 @@ export class TenantsService {
           'INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, $5)',
           [1, externalPlanId, 'active', now.toISOString().split('T')[0], endsAtExt.toISOString().split('T')[0]],
         );
-        console.log('[TenantsService] Subscription criada - plan_id:', externalPlanId, '(master:', plan.id, ')');
+        this.logger.log(`Subscription criada - plan_id: ${externalPlanId} (master: ${plan.id})`);
 
         await pool.end();
       } catch (e) {
-        console.error('[TenantsService] Erro ao criar subscription no DB externo:', e.message);
+        this.logger.error(`Erro ao criar subscription no DB externo: ${e.message}`);
       }
     }
 
@@ -182,9 +178,9 @@ export class TenantsService {
             } else {
               await ext.pool.query('UPDATE subscriptions SET status = $1, cancelled_at = NULL WHERE status != $1', [status]);
             }
-            console.log('[TenantsService] Status atualizado no DB externo:', status);
+            this.logger.log(`Status atualizado no DB externo: ${status}`);
           } catch (e) {
-            console.error('[TenantsService] Erro ao atualizar status no DB externo:', e.message);
+            this.logger.error(`Erro ao atualizar status no DB externo: ${e.message}`);
           }
           await ext.pool.end();
         }
@@ -225,7 +221,7 @@ export class TenantsService {
                 ],
               );
               externalPlanId = insertPlan.rows[0].id;
-              console.log('[TenantsService] Plano criado no DB externo:', plan.name, '(id:', externalPlanId, ')');
+this.logger.log(`Plano criado no DB externo: ${plan.name} (id: ${externalPlanId})`);
             }
 
             const now = new Date();
@@ -237,9 +233,9 @@ export class TenantsService {
               'INSERT INTO subscriptions (user_id, plan_id, status, start_date, end_date) VALUES ($1, $2, $3, $4, $5)',
               [1, externalPlanId, 'active', now.toISOString().split('T')[0], endsAt.toISOString().split('T')[0]],
             );
-            console.log('[TenantsService] Plan_id atualizado no DB externo:', externalPlanId, '(master:', planId, ')');
+            this.logger.log(`Plan_id atualizado no DB externo: ${externalPlanId} (master: ${planId})`);
           } catch (e) {
-            console.error('[TenantsService] Erro ao atualizar plan_id no DB externo:', e.message);
+            this.logger.error(`Erro ao atualizar plan_id no DB externo: ${e.message}`);
           }
           await ext.pool.end();
         }

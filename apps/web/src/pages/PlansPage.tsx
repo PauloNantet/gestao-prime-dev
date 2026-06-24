@@ -1,9 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../lib/api';
-
-const intervalLabels: Record<string, string> = {
-  monthly: 'mensal', quarterly: 'trimestral', semestral: 'semestral', yearly: 'anual',
-};
+import { intervalLabels } from '../lib/constants';
 
 export function PlansPage() {
   const [plans, setPlans] = useState<any[]>([]);
@@ -27,15 +24,19 @@ export function PlansPage() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await api.post('/plans', {
-      ...form,
-      price: parseFloat(form.price),
-      intervalCount: parseInt(form.intervalCount),
-      features: form.features.split('\n').filter(Boolean),
-    });
-    setShowModal(false);
-    setForm({ name: '', description: '', price: '', interval: 'monthly', intervalCount: '1', features: '', productIds: [] });
-    load();
+    try {
+      await api.post('/plans', {
+        ...form,
+        price: parseFloat(form.price),
+        intervalCount: parseInt(form.intervalCount),
+        features: form.features.split('\n').filter(Boolean),
+      });
+      setShowModal(false);
+      setForm({ name: '', description: '', price: '', interval: 'monthly', intervalCount: '1', features: '', productIds: [] });
+      load();
+    } catch {
+      alert('Erro ao criar plano');
+    }
   };
 
   const toggleProduct = (id: string) => {

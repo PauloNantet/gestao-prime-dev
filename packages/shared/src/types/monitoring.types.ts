@@ -1,13 +1,4 @@
-export enum ActionType {
-  LOGIN = 'login',
-  LOGOUT = 'logout',
-  CREATE = 'create',
-  UPDATE = 'update',
-  DELETE = 'delete',
-  VIEW = 'view',
-  EXPORT = 'export',
-  PAYMENT = 'payment',
-}
+export type ActionType = 'login' | 'logout' | 'create' | 'update' | 'delete' | 'view' | 'export' | 'payment';
 
 export interface AuditLog {
   id: string;

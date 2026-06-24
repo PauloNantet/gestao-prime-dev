@@ -1,8 +1,8 @@
 import type { AuthResponse, User } from '@gestao-prime/shared';
 import api from './api';
 
-export const TOKEN_KEY = '@gp:token';
-export const USER_KEY = '@gp:user';
+const TOKEN_KEY = '@gp:token';
+const USER_KEY = '@gp:user';
 
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);

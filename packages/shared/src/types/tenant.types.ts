@@ -1,11 +1,3 @@
-export enum TenantStatus {
-  ACTIVE = 'active',
-  INACTIVE = 'inactive',
-  SUSPENDED = 'suspended',
-  CANCELLED = 'cancelled',
-  TRIAL = 'trial',
-}
-
 export interface Tenant {
   id: string;
   name: string;
@@ -13,7 +5,7 @@ export interface Tenant {
   document: string | null;
   email: string;
   phone: string | null;
-  status: TenantStatus;
+  status: string;
   databaseUrl: string;
   databaseName: string;
   subscriptionId: string | null;
@@ -41,7 +33,7 @@ export interface UpdateTenantDto {
   document?: string;
   email?: string;
   phone?: string;
-  status?: TenantStatus;
+  status?: string;
   planId?: string;
   settings?: Record<string, unknown>;
   productIds?: string[];

@@ -123,7 +123,7 @@ export function TenantsPage() {
       setError('');
       const { productIds, slug, planId, projectId, environmentId, databaseUrl, ...payload } = form;
       if (editingTenant) {
-        await api.put(`/tenants/${editingTenant.id}`, { ...payload, productIds });
+        await api.put(`/tenants/${editingTenant.id}`, { ...payload, productIds, planId });
       } else {
         const settings: Record<string, any> = {};
         if (projectId) settings.railwayProjectId = projectId;
