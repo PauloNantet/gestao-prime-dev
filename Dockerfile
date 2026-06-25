@@ -12,7 +12,6 @@ RUN npm ci
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-ENV MASTER_DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 RUN turbo build
 
@@ -26,13 +25,11 @@ RUN npm ci --omit=dev
 COPY --from=builder /app/apps/api/dist /app/apps/api/dist
 COPY --from=builder /app/apps/web/dist /app/apps/web/dist
 COPY --from=builder /app/apps/api/prisma /app/apps/api/prisma
-ENV MASTER_DATABASE_URL="postgresql://user:pass@localhost:5432/dbname"
 RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
 COPY --from=builder /app/packages/shared/dist /app/packages/shared/dist
-
-EXPOSE 3001
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
 
 ENV NODE_ENV=production
-ENV API_PORT=3001
 
-CMD npx prisma db push --schema=apps/api/prisma/schema.prisma --accept-data-loss || true; node /app/apps/api/dist/main.js
+CMD ["/app/entrypoint.sh"]
