@@ -411,6 +411,27 @@ export class DeployService {
     });
   }
 
+  private async ensurePlansTable(databaseUrl: string) {
+    await this.withDb(databaseUrl, async (pool) => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS plans (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          period_months INTEGER NOT NULL DEFAULT 1,
+          monthly_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+          total_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+          max_users INTEGER NOT NULL DEFAULT 1,
+          has_support BOOLEAN NOT NULL DEFAULT false,
+          has_updates BOOLEAN NOT NULL DEFAULT false,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          unlimited_users BOOLEAN NOT NULL DEFAULT false,
+          savings TEXT NOT NULL DEFAULT '',
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+    });
+  }
+
   private planIntervalToMonths(interval: string, count: number): number {
     const multiplier: Record<string, number> = { monthly: 1, quarterly: 3, semestral: 6, yearly: 12 };
     return (multiplier[interval] || 1) * count;
@@ -441,6 +462,7 @@ export class DeployService {
 
     for (const db of databases) {
       try {
+        await this.ensurePlansTable(db.databaseUrl);
         await this.withDb(db.databaseUrl, async (pool) => {
           const exists = await pool.query(`SELECT id FROM plans WHERE name = $1`, [lookupName]);
 
@@ -478,6 +500,7 @@ export class DeployService {
     let deleted = 0;
     for (const db of databases) {
       try {
+        await this.ensurePlansTable(db.databaseUrl);
         await this.withDb(db.databaseUrl, async (pool) => {
           await pool.query(`DELETE FROM plans WHERE name = $1`, [planName]);
         });
