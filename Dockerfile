@@ -25,7 +25,7 @@ COPY --from=deps /app/package.json /app/package-lock.json ./
 COPY --from=deps /app/apps/api/package.json ./apps/api/
 COPY --from=deps /app/apps/web/package.json ./apps/web/
 COPY --from=deps /app/packages/shared/package.json ./packages/shared/
-RUN npm ci --omit=dev
+RUN npm ci --omit=dev --ignore-scripts
 
 COPY --from=builder /app/apps/api/dist /app/apps/api/dist
 COPY --from=builder /app/apps/web/dist /app/apps/web/dist
