@@ -3,12 +3,15 @@ WORKDIR /app
 RUN npm install -g turbo prisma
 
 FROM base AS deps
-COPY package.json package-lock.json turbo.json ./
+COPY package.json package-lock.json turbo.json tsconfig.base.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
 COPY packages/shared/tsconfig.json packages/shared/
-RUN npm ci
+COPY packages/shared/src packages/shared/src/
+RUN npm ci --ignore-scripts
+RUN npx prisma generate --schema=apps/api/prisma/schema.prisma
+RUN npx turbo build --filter=@gestao-prime/shared
 
 FROM base AS builder
 COPY --from=deps /app/node_modules ./node_modules
