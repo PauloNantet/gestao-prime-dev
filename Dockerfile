@@ -35,6 +35,8 @@ COPY --from=builder /app/packages/shared/dist /app/packages/shared/dist
 COPY entrypoint.sh /app/entrypoint.sh
 RUN chmod +x /app/entrypoint.sh
 
+EXPOSE 3001
+
 ENV NODE_ENV=production
 
 CMD ["/app/entrypoint.sh"]
