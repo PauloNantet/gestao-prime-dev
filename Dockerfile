@@ -7,6 +7,7 @@ COPY package.json package-lock.json turbo.json ./
 COPY apps/api/package.json apps/api/
 COPY apps/web/package.json apps/web/
 COPY packages/shared/package.json packages/shared/
+COPY packages/shared/tsconfig.json packages/shared/
 RUN npm ci
 
 FROM base AS builder
