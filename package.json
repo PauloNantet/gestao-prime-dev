@@ -2,10 +2,11 @@
   "name": "gestao-prime",
   "private": true,
   "scripts": {
-    "postinstall": "turbo build --filter=@gestao-prime/shared && npm run prisma:generate --workspace=@gestao-prime/api",
-    "dev": "turbo build --filter=@gestao-prime/shared && npm run prisma:generate --workspace=@gestao-prime/api && turbo dev",
+    "postinstall": "npm run prisma:generate",
+    "dev": "turbo dev",
     "build": "turbo build",
-    "lint": "turbo lint"
+    "lint": "turbo lint",
+    "prisma:generate": "npm run prisma:generate --workspace=@gestao-prime/api"
   },
   "workspaces": [
     "apps/*",
@@ -14,7 +15,6 @@
   "devDependencies": {
     "@swc/cli": "^0.8.1",
     "@swc/core": "^1.15.43",
-    "chokidar": "^5.0.0",
     "turbo": "^2.5.0",
     "typescript": "^5.8.0"
   },

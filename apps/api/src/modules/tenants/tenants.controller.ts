@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { TenantsService } from './tenants.service';
 import { MonitoringService } from '../monitoring/monitoring.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { CreateTenantDto, UpdateTenantDto } from '@gestao-prime/shared';
+import { CreateTenantDto, UpdateTenantDto, ActionType } from '@gestao-prime/shared';
 
 @Controller('tenants')
 export class TenantsController {
@@ -33,10 +33,10 @@ export class TenantsController {
     this.monitoring.log({
       tenantId,
       userId: user.id,
-      action: 'create',
+      action: ActionType.CREATE,
       entity: 'tenant',
       entityId: tenantId,
-      metadata: { name: result.name, slug: result.slug },
+      metadata: { name: result.name, slug: result.slug } as Record<string, unknown>,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
@@ -54,10 +54,10 @@ export class TenantsController {
     this.monitoring.log({
       tenantId: id,
       userId: user.id,
-      action: 'update',
+      action: ActionType.UPDATE,
       entity: 'tenant',
       entityId: id,
-      metadata: dto,
+      metadata: dto as Record<string, unknown>,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
@@ -74,7 +74,7 @@ export class TenantsController {
     this.monitoring.log({
       tenantId: id,
       userId: user.id,
-      action: 'delete',
+      action: ActionType.DELETE,
       entity: 'tenant',
       entityId: id,
       ip: req.ip,

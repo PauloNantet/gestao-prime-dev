@@ -3,7 +3,7 @@ import { PrismaService } from '../../prisma/prisma.service';
 import { TenantDbService } from '../../common/database/tenant-db.service';
 import type { ActionType } from '@gestao-prime/shared';
 
-interface ActivityLogRow {
+export interface ActivityLogRow {
   id: string;
   user_id: number;
   user_name: string;

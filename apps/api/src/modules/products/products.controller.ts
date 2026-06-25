@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { ProductsService } from './products.service';
 import { MonitoringService } from '../monitoring/monitoring.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
-import { CreateProductDto, UpdateProductDto } from '@gestao-prime/shared';
+import { CreateProductDto, UpdateProductDto, ActionType } from '@gestao-prime/shared';
 
 @Controller('products')
 export class ProductsController {
@@ -38,10 +38,10 @@ export class ProductsController {
       this.monitoring.log({
         tenantId: user.tenantId,
         userId: user.id,
-        action: 'create',
+        action: ActionType.CREATE,
         entity: 'product',
         entityId: result.id,
-        metadata: { name: result.name, slug: result.slug },
+        metadata: { name: result.name, slug: result.slug } as Record<string, unknown>,
         ip: req.ip,
         userAgent: req.headers['user-agent'],
       });
@@ -61,10 +61,10 @@ export class ProductsController {
       this.monitoring.log({
         tenantId: user.tenantId,
         userId: user.id,
-        action: 'update',
+        action: ActionType.UPDATE,
         entity: 'product',
         entityId: id,
-        metadata: dto,
+        metadata: dto as Record<string, unknown>,
         ip: req.ip,
         userAgent: req.headers['user-agent'],
       });
@@ -83,7 +83,7 @@ export class ProductsController {
       this.monitoring.log({
         tenantId: user.tenantId,
         userId: user.id,
-        action: 'delete',
+        action: ActionType.DELETE,
         entity: 'product',
         entityId: id,
         ip: req.ip,

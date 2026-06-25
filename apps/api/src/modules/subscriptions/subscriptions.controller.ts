@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { SubscriptionsService } from './subscriptions.service';
 import { MonitoringService } from '../monitoring/monitoring.service';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { ActionType } from '@gestao-prime/shared';
 
 @Controller('subscriptions')
 export class SubscriptionsController {
@@ -27,10 +28,10 @@ export class SubscriptionsController {
     this.monitoring.log({
       tenantId,
       userId: user.id,
-      action: 'update',
+      action: ActionType.UPDATE,
       entity: 'subscription',
       entityId: result.id,
-      metadata: { planId, status: 'active' },
+      metadata: { planId, status: 'active' } as Record<string, unknown>,
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
@@ -47,7 +48,7 @@ export class SubscriptionsController {
     this.monitoring.log({
       tenantId,
       userId: user.id,
-      action: 'update',
+      action: ActionType.UPDATE,
       entity: 'subscription',
       entityId: result.id,
       metadata: { status: 'cancelled' },

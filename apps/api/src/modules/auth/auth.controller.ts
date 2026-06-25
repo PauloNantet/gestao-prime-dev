@@ -3,7 +3,7 @@ import { Request } from 'express';
 import { AuthService } from './auth.service';
 import { MonitoringService } from '../monitoring/monitoring.service';
 import { Public } from '../../common/decorators/public.decorator';
-import { LoginDto, RegisterDto } from '@gestao-prime/shared';
+import { LoginDto, RegisterDto, ActionType } from '@gestao-prime/shared';
 
 @Controller('auth')
 export class AuthController {
@@ -20,7 +20,7 @@ export class AuthController {
       this.monitoring.log({
         tenantId: result.user.tenantId,
         userId: result.user.id,
-        action: 'create',
+        action: ActionType.CREATE,
         entity: 'user',
         entityId: result.user.id,
         metadata: { email: result.user.email, name: result.user.name },
@@ -40,7 +40,7 @@ export class AuthController {
       this.monitoring.log({
         tenantId: result.user.tenantId,
         userId: result.user.id,
-        action: 'login',
+        action: ActionType.LOGIN,
         entity: 'user',
         entityId: result.user.id,
         metadata: { email: result.user.email },
