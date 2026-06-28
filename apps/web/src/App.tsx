@@ -1,0 +1,49 @@
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { AuthLayout } from './layouts/AuthLayout';
+import { DashboardLayout } from './layouts/DashboardLayout';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { TenantsPage } from './pages/TenantsPage';
+import { ProductsPage } from './pages/ProductsPage';
+import { ProductPlansPage } from './pages/ProductPlansPage';
+import { CheckoutPage } from './pages/CheckoutPage';
+import { MonitoringPage } from './pages/MonitoringPage';
+import { RailwayPage } from './pages/RailwayPage';
+import { getToken } from './lib/auth';
+
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const token = getToken();
+  if (!token) return <Navigate to="/login" replace />;
+  return <>{children}</>;
+}
+
+export default function App() {
+  return (
+    <Routes>
+      <Route element={<AuthLayout />}>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+      </Route>
+
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <DashboardLayout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<DashboardPage />} />
+        <Route path="tenants" element={<TenantsPage />} />
+        <Route path="products" element={<ProductsPage />} />
+        <Route path="products/:productId/plans" element={<ProductPlansPage />} />
+        <Route path="monitoring" element={<MonitoringPage />} />
+        <Route path="railway" element={<RailwayPage />} />
+        <Route path="checkout/:tenantId" element={<CheckoutPage />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  );
+}

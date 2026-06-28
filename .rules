@@ -1,0 +1,363 @@
+# 📜 REGRAS E PROCEDIMENTOS PARA NOSSA COLABORAÇÃO
+
+## 🎯 **PONTUA DE PARTIDA**
+
+### Regras Fundamentais
+
+1. **Confirmação Pré-modificação (CRÍTICA)**
+   **Nenhum arquivo será modificado sem aprovação explícita e por escrito.**
+
+   - **Análise sempre antes da ação:** Escaneio arquivos, diagnostico problemas, e explico primeiro.
+   - **Confirmação obrigatória:** Quero resposta de "Sim/Não" antes de qualquer alteração.
+   - **Sem código sem pedido:** Nenhuma trecho de código deve aparecer sem você explicitamente me pedir.
+   - **Sem alterações inesperadas:** Apenas procedo dentro do que você especificar.
+
+2. **Sem Trechos de Código**
+   - **Sem código implícito:** Nunca incorporo trechos de código sem sua permissão explícita.
+   - **Sem modificações surpresa:** Apenas ajusto se você disser "ajustar"
+   - **Sem códigos ocultos:** Informo antecipadamente as alterações que farei.
+
+3. **Confirmação por Etapas**
+   1. **Etapa 1** - Você me pede uma análise: "Por favor, ajuste X"
+   2. **Etapa 2** - Eu respondo com o diagnóstico completo e pergunto: "Deseja? [ ] Sim [ ] Não"
+   3. **Etapa 3** - Se você aprovar, eu prossigo imediatamente com o trabalho
+   4. **Etapa 4** - Confirmo todas as alterações completamente antes de terminar
+
+4. **Sem Furloughs ou Tempo Limite**
+   - **Clarity:** Respondo claro e simples!
+   - **Sempre com o seu consentimento:** Ponto final para cada alteração
+   - **Toda explicação:** Tudo que eu altero, eu explico passo a passo
+   - **Com preços detalhados:** Aqui está o que eu alterei:
+
+## 🎯 **FLUXO DE TRABALHO DETALHADO**
+
+### Passo 1: Diagnóstico (Sou Eu)
+```
+Você: "Por favor, ajuste o arquivo X"
+
+Eu:
+> Analisei X:
+> ✅ Bom: Y
+> ⚠️ Issue: Z
+> Sugestões: A, B, C
+> Deseja? [ ] Sim [ ] Não
+```
+
+### Passo 2: Confirmação (Você)
+```
+[ ] Sim (Ei concordo com as alterações)
+[ ] Não (Especificar não aqui)
+```
+
+### Passo 3: Implementação (Se você aprovar)
+```
+{
+  \"Eu fazendo o que você pediu\"
+}
+```
+
+### Passo 4: Verificação (Sou Eu)
+```
+Testes passados. Histórico atualizado.
+Aqui está o que eu mudei.
+```
+
+## 📝 **ESTRUTURA DE ARQUIVOS**
+
+### Nomenclatura
+- **Extensões aceitáveis**: .js, .jsx, .json, .md, .txt, .css, .scss, .html
+- **Nomenclatura das pastas**: snake_case para descrições, PascalCase para arquivos
+- **Compenas nomes de arquivo normais**: Evitar acentos, emojis especiais
+- **Prefixos**: prefixo de arquivo simples:
+  - backend: server_
+  - componentes frontend: jan., feb., mar. (primeiros 3 meses de desenvolvimento?)
+
+## 💬 **FORMATOS DE ENDEREÇO E COMANDO**
+
+### Mensagens em chats:
+```
+Análise completa + Confirmação obrigatória + Sem código
+```
+
+### Etapas de interações:
+```
+Etapa #: [Descrevo o que farei]
+```
+
+## 🔍 **CONTROLE DE CÓDIGO**
+
+### Escaneamento inicial:
+- [ ] Ler e analisar cada arquivo de origem
+- [ ] Identificar imports desnecessários
+- [ ] Repor duplicidades de function (formatPhoneBR, etc.)
+- [ ] Identificar imports/calls não utilizados
+- [ ] Listar componentes não utilizados
+
+### Redução da massa de código:
+- [ ] Remover componentes não utilizados (TestAppPanel, SignUp, etc.)
+- [ ] Remover imports não utilizados (App.jsx)
+- [ ] Consolida Mocks/Mocks
+- [ ] Remover ou Corrigir references quebradas
+- [ ] Otimizar exports (export default vs named)
+- [ ] Formatar datas / style continuo code
+
+### Etapas para cada problema identificado:
+```
+Identificação: Descrição do problema.
+Implicações: O que isto faz.
+Solução: O que eu alterei.
+Precisa de uma confirmação: [ ] Sim [ ] Não
+```
+
+## 📊 **CONFIGURAÇÕES DE COMPONENTE E CÓDIGO**
+
+### Estilo de componente de código:
+- **Imports ordenados:** alphabetical: padrão,lodash,utils, api
+- **No lint:** Usar exatamente 2 espaços
+- **Citações:** preferir "dupla", mas posso usar single quando mais limpo.
+
+### Escolhas de design:
+- **Contraste de cor OK (no sucritia), correto.**
+- **Largura da fonte padrão padrão:** não mais de 100 caracteres
+- **Tipos:** mais de qualquer, arrays regulares
+- **Classe:** camelCase para JavaScript, snake_case para estilização
+
+## 🖹️ **EXECUÇÃO E TESTES**
+
+### Testar último:
+```
+npm test
+npm run lint
+npm run typecheck
+(Executar por trás das cenas)
+```
+
+### após alterações:
+- [ ] Verificar funcionamento
+- [ ] Manutenção de histórico de alterações
+- [ ] Esperar para o próximo passo
+
+## 🏷️ **MINHAS REGRAS**
+
+### Sempre observar:
+1. **Não romper o fluxo de trabalho padrão** (já pintei sobre co-screação)
+2. **Uma transação por vez** (Evitar curto-circuito)
+3. **Nunca Modificar no meio de alguns passos** (sempre confirmar).
+
+### Nunca fazer:
+1. **Criar Algo inoportuno** (especialmente interrupção)
+2. **Desrespeitar suas regras** (Sra N-ingame)
+3. **Ir atrás de tempo-quieto Life Actions** (especialmente para times)
+
+## 🎭 **MODERNIZAÇÃO E ATUALIZAÇÃO:
+
+### Geral:
+1. **Sempre atualizar o HISTORY**
+2. **Sempre atualizar CHANGELOG**
+3. **Sempre adicionar tag version**
+4. **Todos modificados documentados**
+5. **Tem Pai bemGroove
+
+### Componentes:
+1. **att:** Atualizações estratégicas
+2. **newComponent:** New Component
+3. **newMDE:** Template e documentação
+4. **newMiddleware:** Lentida do início de deploy (pode ser migrado para current)
+
+### Melhorias de código
+1. **Entender o código** antes de modificar
+2. **Testar tudo** primeiro
+3. **Documentar tudo** depois
+4. **Visualizar ao menos 3 vezes** antes da implantação
+
+### Rotinas:
+1. **Ter um controle centralizado** para o git
+2. **Sempre, Sem exceção, Revisão de Codigo por MA**
+3. **Todos commits tem um conselho**
+
+## 📋 **GERENCIAMENTO E TRABALHO EM EQUIPE**
+
+### Como proceder:
+1. **Analisar primeiro** (Te ouvir)
+2. **Perguntar antes de fazer** (Seu consentimento)
+3. **Seguir seus requisitos** (Sem variação)
+4. **Comunicar tudo** (Minha pipeline de atualização)
+5. **Manter histórico** (Minha documentação detalhada)
+
+### Como separar:
+1. **Visualizar um .rules**
+```
+
+## 🎯 **AGENDAMENTO**: N-A------------- B
+
+### A-FEZRY-em--------------- 10 Jan.
+```
+- [ ] Decisão N° 1.
+- [ ] Decisão Nº 2.
+- [ ] Decisão N° 3.
+- [ ] Novo desenvolvedor N341 Enziano Aberto para melhorar.
+---
+
+### Programação:
+- [ ] Manter integração e agendas claras
+- [ ] Manter "Cloud Plan" e histórico
+- [ ] Nodejs atualizado para . . .
+- [ ] Abra um outro ramo, adicione !1 Ao main
+- [ ] Confirme changes no seu APP
+- [ ] Merged e preparado R1 para a equipe de segurança
+
+### Cronograma:
+1. **Etapa 1** (mantêm estratégias para exclusivo).
+2. **Etapa 2** (Design e Desenvolvimento)
+
+## 📝 **MODO DE TRABALHO**
+
+### Preparação e Testes:
+1. **Ter Log de Agendis** para debug
+2. **Reverter alterações** apenas depois de certificações de teste.
+3. **Manter todos em sincronia** (sincronizado em literalmente 3 minutos)
+4. **Ter um WISHL (Obrigado por compartilhar vaga) History**.
+
+### Normas e Costumes Gerais:
+1. **Sigam os rascunhos**
+2. **Prove um ‘alça’ (conceda um mais recente) depois da Colaboração**
+3. **Importe os ARQUIVOS** de pastas comuns do meu github G7.
+4. **Manter documentação atualizada sempre**
+
+## ⚠️ **PADRÕES E TRATAMENTO DE ERROS**
+
+### Identação de problemas:
+1. **Limpeza** (Aplicar as minhas fases de limpeza)
+2. **Melhores Practices** (Não romper nenhum destes casos)
+3. **Profundidade e Good Programming**
+
+### Para o meu próprio exclusividade:
+1. **Unión de código maestrí** (Juntar uma manilha y grass de '
+2. **MINI + MAX100 char** (Não exceder 100 char)
+3. **Separador Completo de meticulos** (Construir com TR + TUDO)
+
+## 🔓 **SEGURANÇA E PRIVACIDADE**
+
+### Mantendo:
+1. **Todas as configurações na memoria** (especialmente patch)
+2. **Sem acessos perdidos** (Acesso contínuo)
+3. **Todo o dado de interface centralizado** (Core e interface scumpatível)
+4. **Nenhuma rota / código mal preparado** (Semanticamente preparado)
+5. **Nenhuma cadeia :: GITHUB**.
+6. **Reter de triage definidos**
+
+### Armazenando e Protegendo:
+1. **Não armazeno core dentro de JSON** (fixo o mais naughty)
+2. **Sempre Environment-specificável** (Code garantido, dev, prod)
+3. **Definir um Qual backend** (Configurado com Segurança)
+
+## 🏎️ **NOSSO PROCESSO DE TRABALHO**
+
+### Processo:
+`CRIAÇÃO -> DESIGN -> IMPLEMENTAÇÃO -> TEST -> DEPLOY`
+
+### Testes:
+1. **Testar cada ramificação**
+2. **Gerar pixel 'ATUALIZAR OK'** (OK Tempo Real)
+
+### Distribuição:
+1. **Manter um Scaffold centralizado** (G-7)
+2. **Master -> decompilar -> implantar**
+
+## 🎨 **MEU CONCEITO:
+
+### Etapas de trabalho:
+1. **Ajudar empresa** (Melhor paz)
+2. **Co-produção** (Projetar Intrum)
+3. **Co-Patorialismo individualmente** (Usar minha habilidade)
+4. **Projetar um futuro rico** (Ter uma mesa limpa)
+5. **Aplicar Code Profissional** (Minha filosofia)
+
+## 💼 **MEU TRABALHO:
+
+### Prioridades:
+1. **Sempre começar com projeto do zero** (ZEROS hopp)
+2. **Sempre gerar conhecimento institucional** (Minhas edições)
+3. **Sempre ter uma gitcam (commit)** (Minha auto-commit)
+4. **Sempre por feature branch** (Meus usuários chamados 'Feature X')
+5. **Sempre pair programming** (Meu conjunto de validação)
+
+## 🎭 **COMO TRABALHO** (O meu próprio painel de condições):
+
+### Condições
+1. **Abra cada arquivo de instrução** (Normal)
+2. **Perguntar ajuda profissional** (Concírcia)
+3. **Permite ética** (Meu princípio principal)
+4. **Matar subprocesso confidencial** (Este pacote de teste)
+
+## 🧘‍♂️ **MINHAS 3 REGRAS PRIMÁRIAS:**
+
+### Solidão da Gut
+1. **Leitura direita** (Leitura rápida, e praticar)
+2. **No-proró utente** (Nunca infringir a norma)
+3. **Três SHAPE**
+
+---
+
+## 🧱 **PLANO DE AÇÃO**
+
+### Etapa 1
+- [ ] _**Ver Top Mover: Geração de novos nódulos**_
+- [ ] _**Limitar uso de NPM**_
+- [ ] _**Implantar CDN no backend**_
+
+### Etapa 2
+- [ ] _**Implantar um Scribe**_
+- [ ] _**Padrão para arquivos em bundle, modularizações**_
+- [ ] _**Garantir processamento rápido**_
+
+### Etapa 3
+- [ ] _**Criação de Database padrão**_
+- [ ] _**Criação de autenticador standard**_
+- [ ] _**Configuração do nginx**_
+
+### Etapa 4
+- [ ] _**Implementar scaffolding estruturado**_
+- [ ] _**Implantar protocolo de CI/CD completo**_
+- [ ] _**Implementar módulos de CLI bastante completos**_
+
+### Etapa 5
+- [ ] _**Integração e fazer o release**_
+- [ ] _**Impulsar e implantar**_
+- [ ] _**Nolte atividades principais de M-T**\n
+## 🎭 **MEU TRABALHO PLATAFORMA**
+
+### Escopo de cooperação:
+1. **Analisar código existente** (Leitura minuciosa)
+2. **código de kelner válido** (Transição sem efeitos) 
+3. **Criação de templates de código** (Modelos base)
+4. **Formação de desenvolvedores** (Treinamento)
+5. **Adequar às normas de engenharia** (Qualidade declarada)
+6. **Dev industry's standards Pr'À-norme**
+
+### Princípios operacional:
+1. **Nunca trabalhar em uma tarefa desconhecida** (Primeiro ver valore/I must initialize properly)
+2. **Nunca trabalhar com código que quebre minhas regras de código profissionalmente**
+
+### Arquitetura:
+
+## 📜 **MINHAS NORMAS**
+
+### Modificações como práticas:
+1. **Nosso projeto é um shifting**
+2. **I like o design de nossas velhas** coisas.
+3. **Todas customizações devem passar pelos nosso ungimentos dog,** padrões e normas.
+4. **Se até o código mestre do Fernando havia n'chaves_*
+\n## 🚀 **MINHA TERMINOLOGIA E ATUALIZAÇÃO**
+
+### Excessos Garantidos:
+1. **Situações excessivamente obscuras**
+2. **Salte na etiqueta** (Alarming)
+3. **pequenina intensificação extra**\n4. **utilização micro-garfoe**\n5. **Simbiose Podemos '\n6. **Ambiente de testes sólido**
+
+### Tipos de software secures:
+\n## 💻 **NUR SOBER**
+
+### Preciso organizado, limpo e segue este Exactly Elegibilidade
+\n### SIGA MINHAS DEFINIÇÕES DE FICHEIRO:\n**Git/Pacote de desenvolvimento**\n\n### FUK:\n#### `src/MainApp.ts` (Estrutura de arquivo principal)\n\n#### `src/components/` (Componentes)\n#### `src/styles/` (Estilos)\n#### `src/server/` (Backend/SSR)\n\n---\n\n## 🎯 **CONSIDERAÇÃO PARA DIVERSOS CASOS**\n\n### Após o fim com este agente:\n1. **Descoberto um estilo de produção finest: I like rascunho**\n2. **Verifique as minhas outras definições de arquivo** dentro de mim\n3. **Verifique novas extensões de linguagens** (Se você quiser usar coffins & target modificações)\n\n### Preciso adicionar novos casos apenas depois de apertar este botão N°6:\n```bash\nnpm i\n```\n\n### Adicionando novas linguagens:\n1. **(`Opencode` outra linguagem)**\n\n### Etapas de processo Minhas (pipe):\n```bash\nmessagerie                   # Server = OpenAPI ou AGENTS compatível\npackage.json                # Gerenciados pela versão do node geral\n'/src/**/*.json'             # Configuração de arquivo, documentação etc.\n- yaml                         # Arquivos YAML comuns suportados por minha configuração yaml leia-me\n```\n\n---\n\n> O processo de efeitos e scrapping pode ser preparado como ver modelos de ml mais recentes, projete assim.\n\n## 📝 **DEVAND:\n\n### Repositório e sprint6\n1. **Payload de Nuvem** (Meu próprio bowl)\n2. **Funcionalidade MQ do Gerg Ettingen** (Meu fork regional)\n\n## 🛠️ **MIMO:\n\n### [Sistema de Alerta]\n```\n🚨 JUÁREZ DA BASE ---------------------------------------------------\n👨‍💻 Linguagens e ferramentas suportadas:\n   • JS (ES2022)  |  • JSX         |  • Node.js\n   • TypeScript   |  • React       |  • Vite\n   • git (2020)   |  • openapi3     |  • deno\n\n🏗️ **Estrutura principal:**\n   ├── src/\n   │   ├── components/        → Componentes React/JSX\n   │   ├── context/           → Contextos React (Wine)\n   │   ├── hooks/             → Hooks personalizados\n   │   ├── utils/             → Utilitários (específicos)\n   │   ├── plugins/           → Plugins globais\n   │   ├── styles/            → Assets estáticos\n   │   └── *.{js,jsx,ts,tsx}   → Componentes principais\n   └── vite.config.js         → Configuração de build\n\n📦 **Organização de pacotes e deploys:**\n   • GitHub Releases  → Deployment direto\n   • Railway        → Microserviço escalável\n   • Vercel         → SSR imediato\n   • Netlify         → Static-only deployments\n\n🔧 **Head set de gerenciamento:**\n   • GitHub Actions → CI/CD Pipelines\n   • Dependabot       → Atualizações automatizadas\n   • Renovate        → Atualizações periódicas de dependências\n\n🌐 **Ferramentas extras:**\n   • .gitignore       → Versionamento de dependências\n   • .dockerignore    → Imagens Docker\n   • Dockerfile       → Build para múltiplos estágios\n\n📋 **Checklist de revisão (para merges suaves):**\n   • ✅ Não infringir as minhas normas maiores\n   • ✅ Formatação de código\n   • ✅ Linting/superfície\n   • ✅ Testes\n   • ✅ TypeScript/OxLang\n   • ✅ Segurança (asteriscos)\n   • ✅ Testes de integração\n   • ✅ Segurança pipeline CI\n   • ✅ Checklist de deploy\n\n## 🎭 **MEU SISTEMA DE CÓDIGO**\n\n### Códigos\n\n#### ✅ SISTEMA BASE (Funcional)\nSiga os meus código puro (Qualquer linguagen primário)\n\n#### ✅ LÓGICA WEB GRUPADA\n- Consistentemente usar string-normalizada\n- Sem funcionamento descritivo (em vez de funcional\n- Em zero adicionar atributo de acerto\n- Sem processamento assíncrono\n\n#### ✅ STYLE DE COMPONENTE\n- eslint-eslint standard\n- Se não conseguir:\n  - Obter um 'como se o.layout do meu arquivo.reset\n  - Obter um a Linguagem de design de dis.\n\n### Sistemas\n#### PANCADA EO DIRETIVEIS (...)```\n\n### Nuvens:\n\n3. **Selecione onde criar**\n   - [ ] app ./src components ./src\n   - [ ] -------- estas --------\n4. **Introducao** \n   - [] Você permitiu iniciar componentes @ api/\n5. **inicio**\n   - É você encontrado o componente cadastrar/pendolar?\n\n## 🔍 **VISÃO DE REVISÃO**\n\n### Guia de Estilo Grid (CN)\n\n#### comandos"
+]}

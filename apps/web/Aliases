@@ -1,0 +1,55 @@
+# Master Database (central)
+MASTER_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/gestao_prime_master
+
+# JWT
+JWT_SECRET=super-secret-key-change-in-production
+
+# App
+API_PORT=3000
+API_URL=http://localhost:3000
+WEB_URL=http://localhost:5173
+
+# Railway (deploy)
+RAILWAY_API_TOKEN=
+
+# Redis (optional - for queues)
+REDIS_URL=redis://localhost:6379
+
+# Seed admin credentials (used by prisma/seed.ts)
+SEED_ADMIN_EMAIL=admin
+SEED_ADMIN_PASSWORD=admin
+.seed
+  10: # Seed admin credentials (used by prisma/seed.ts)
+  11: SEED_ADMIN_EMAIL=admin
+  12: SEED_ADMIN_PASSWORD=admin
+
+# Copy from the .env.example to .env and configure the values before running
+alias configure-env=''
+    echo "Configuring environment..."
+    if [[ ! -f .env ]]; then
+        cp .env.example .env
+        echo "✓ Created .env from .env.example"
+    else
+        echo "⚠ .env already exists, skipping copy"
+    fi
+    echo "=== Configuration Instructions ==="
+    echo "1. Update database credentials in .env if needed"
+    echo "2. Generate key for JWT_SECRET"
+    echo "   openssl rand -hex 32 > jwt_secret.txt (or use any 32+ char string)"
+    echo "3. Start services (see below)"
+    echo "=== Commands ==="
+    echo "cd apps/api && npm run dev    # Start API"
+    echo "cd apps/web && npm run dev    # Start Web (handles proxy)"
+    echo "=== For Production ==="
+    echo "docker-compose up -d"
+endef
+
+help:
+  1: help:
+  1:   echo "Available commands:"
+  1:   echo "  npm run dev              - Run all services with turbo (dev)"
+  1:   echo "  npm run build            - Build all apps"
+  1:   echo "  npm run lint              - Run linting"
+  1:   echo "  configure-env            - Create .env file (configure manually)"
+  1:   echo "  start-dev                - Start services manually"
+help

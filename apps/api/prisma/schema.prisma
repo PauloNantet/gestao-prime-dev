@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("MASTER_DATABASE_URL")
+}
+
+enum EntityStatus {
+  active
+  inactive
+  suspended
+  cancelled
+  trial
+  pending
+  overdue
+  onboarding
+}
+
+enum UserRole {
+  super_admin
+  tenant_admin
+  tenant_user
+}
+
+enum InvoiceStatus {
+  pending
+  paid
+}
+
+enum DeploymentStatus {
+  pending
+  deployed
+  failed
+}
+
+model Product {
+  id            String   @id @default(uuid())
+  name          String
+  slug          String   @unique
+  description   String?
+  price         Int      @default(0)
+  githubRepo    String
+  githubBranch  String   @default("master")
+  projectId     String?
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  plans         Plan[]
+  deployments   Deployment[]
+}
+
+model Plan {
+  id              String   @id @default(uuid())
+  name            String
+  dailyRate       Int      @default(0)
+  validityDays    Int      @default(30)
+  price           Int      @default(0)
+  discount        Int      @default(0)
+  discountedPrice Int      @default(0)
+  savings         Int      @default(0)
+  maxUsers        Int      @default(1)
+  unlimitedUsers  Boolean  @default(false)
+  hasSupport      Boolean  @default(false)
+  hasUpdates      Boolean  @default(false)
+  active          Boolean  @default(true)
+  position        Int      @default(0)
+  productId       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Tenant {
+  id               String       @id @default(uuid())
+  name             String
+  slug             String       @unique
+  document         String?
+  email            String
+  phone            String?
+  status           EntityStatus @default(trial)
+  databaseUrl      String
+  databaseName     String       @unique
+  settings         String       @default("{}")
+  additionalDays   Int          @default(0)
+
+  asaasCustomerId  String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  users            User[]
+  auditLogs        AuditLog[]
+  invoices         Invoice[]
+  deployments      Deployment[]
+}
+
+model Invoice {
+  id             String        @id @default(uuid())
+  tenantId       String
+  amount         Int
+  status         InvoiceStatus @default(pending)
+  paymentMethod  String?
+  pixQrCode      String?
+  pixCopiaCola   String?
+  asaasInvoiceId String?
+  dueDate        DateTime
+  paidAt         DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, status])
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      UserRole @default(tenant_user)
+  active    Boolean  @default(true)
+  tenantId  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  tenant    Tenant?   @relation(fields: [tenantId], references: [id])
+  auditLogs AuditLog[]
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  tenantId  String
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  metadata  String?
+  ip        String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([tenantId, createdAt])
+  @@index([userId])
+}
+
+model ProjectDatabase {
+  id              String   @id @default(uuid())
+  projectId       String
+  environmentId   String
+  projectName     String
+  environmentName String
+  databaseUrl     String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([projectId, environmentId])
+}
+
+model Deployment {
+  id              String           @id @default(uuid())
+  tenantId        String
+  productId       String
+  status          DeploymentStatus @default(pending)
+  railwayServiceId String?
+  railwayUrl      String?
+  errorMessage    String?
+  deployedAt      DateTime?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  tenant  Tenant  @relation(fields: [tenantId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@index([tenantId, status])
+}
