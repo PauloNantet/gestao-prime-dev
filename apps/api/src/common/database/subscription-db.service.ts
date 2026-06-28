@@ -144,6 +144,15 @@ export class SubscriptionDbService {
       DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS settings TEXT DEFAULT '{}'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
       DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS asaas_customer_id VARCHAR(255); EXCEPTION WHEN OTHERS THEN NULL; END $$;
       DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS additional_days INTEGER DEFAULT 0; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+      -- Drop old tenant_ prefixed columns if they exist
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_name; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_slug; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_document; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_email; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_phone; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_status; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription DROP COLUMN IF EXISTS tenant_additional_days; EXCEPTION WHEN OTHERS THEN NULL; END $$;
     `;
     try {
       await this.tenantDb.runQuery(tenantId, dbUrl, migrationSql);
