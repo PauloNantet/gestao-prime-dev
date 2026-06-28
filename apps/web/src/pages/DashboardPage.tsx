@@ -85,13 +85,6 @@ export function DashboardPage() {
                 <p className="text-xs text-gray-500">Apps vinculados ao GitHub</p>
               </div>
             </a>
-            <a href="/plans" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
-              <span className="text-xl">📋</span>
-              <div>
-                <p className="font-medium text-gray-800 text-sm">Gerenciar Planos</p>
-                <p className="text-xs text-gray-500">Planos com múltiplos produtos</p>
-              </div>
-            </a>
             <a href="/tenants" className="flex items-center gap-3 p-3 border rounded-lg hover:bg-gray-50 transition-colors">
               <span className="text-xl">🏢</span>
               <div>

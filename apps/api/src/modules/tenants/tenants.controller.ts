@@ -70,8 +70,7 @@ export class TenantsController {
     @CurrentUser() user: any,
     @Req() req: Request,
   ) {
-    const result = await this.tenants.remove(id);
-    this.monitoring.log({
+    await this.monitoring.log({
       tenantId: id,
       userId: user.id,
       action: ActionType.DELETE,
@@ -80,6 +79,6 @@ export class TenantsController {
       ip: req.ip,
       userAgent: req.headers['user-agent'],
     });
-    return result;
+    return this.tenants.remove(id);
   }
 }

@@ -27,6 +27,11 @@ export class PlansController {
     return this.plans.create(dto);
   }
 
+  @Put(':id/reorder')
+  reorder(@Param('id') id: string, @Body('direction') direction: 'up' | 'down') {
+    return this.plans.reorder(id, direction);
+  }
+
   @Put(':id')
   update(@Param('id') id: string, @Body() dto: UpdatePlanDto) {
     return this.plans.update(id, dto);

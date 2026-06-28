@@ -1,8 +1,8 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, NotFoundException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../prisma/prisma.service';
-import { RegisterDto, LoginDto } from '@gestao-prime/shared';
+import { RegisterDto, LoginDto, UserRole } from '@gestao-prime/shared';
 
 @Injectable()
 export class AuthService {
@@ -17,13 +17,23 @@ export class AuthService {
 
     const password = await bcrypt.hash(dto.password, 10);
 
+    let tenantId: string | undefined;
+    let role = UserRole.SUPER_ADMIN;
+
+    if (dto.tenantSlug) {
+      const tenant = await this.prisma.tenant.findUnique({ where: { slug: dto.tenantSlug } });
+      if (!tenant) throw new NotFoundException('Tenant não encontrado para o slug informado');
+      tenantId = tenant.id;
+      role = UserRole.TENANT_ADMIN;
+    }
+
     const user = await this.prisma.user.create({
       data: {
         email: dto.email,
         password,
         name: dto.name,
-        role: dto.tenantSlug ? 'tenant_admin' : 'super_admin',
-        tenantId: undefined,
+        role,
+        tenantId,
       },
       select: { id: true, email: true, name: true, role: true, tenantId: true },
     });

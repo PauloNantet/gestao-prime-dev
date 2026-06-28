@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 
 interface TenantConnection {
@@ -8,6 +8,7 @@ interface TenantConnection {
 
 @Injectable()
 export class TenantDbService {
+  private readonly logger = new Logger(TenantDbService.name);
   private connections = new Map<string, TenantConnection>();
   private readonly MAX_POOLS = 50;
   private readonly IDLE_TIMEOUT = 30 * 60 * 1000;
@@ -24,6 +25,7 @@ export class TenantDbService {
         connectionString: databaseUrl,
         max: 5,
         idleTimeoutMillis: 30000,
+        ssl: { rejectUnauthorized: false },
       });
 
       conn = { pool, lastUsed: Date.now() };
@@ -31,7 +33,13 @@ export class TenantDbService {
     }
 
     conn.lastUsed = Date.now();
-    return conn.pool.connect();
+    try {
+      return await conn.pool.connect();
+    } catch (err) {
+      this.connections.delete(tenantId);
+      await conn.pool.end().catch(() => {});
+      throw err;
+    }
   }
 
   async runQuery(tenantId: string, databaseUrl: string, query: string, params?: unknown[]) {
@@ -167,35 +175,71 @@ export class TenantDbService {
         created_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS "${schema}".plans (
-        id SERIAL PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        description TEXT,
-        period_months INTEGER NOT NULL,
-        monthly_price DECIMAL(10,2) NOT NULL,
-        savings VARCHAR(50) DEFAULT '0%',
-        total_price DECIMAL(10,2) NOT NULL,
+      CREATE TABLE IF NOT EXISTS "${schema}".subscription (
+        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        plan_id VARCHAR(255) NOT NULL,
+        plan_name VARCHAR(255),
+        plan_daily_rate INTEGER DEFAULT 0,
+        plan_validity_days INTEGER DEFAULT 30,
+        plan_price INTEGER DEFAULT 0,
+        plan_discount INTEGER DEFAULT 0,
+        plan_discounted_price INTEGER DEFAULT 0,
+        status VARCHAR(50) DEFAULT 'trial',
+        starts_at TIMESTAMPTZ DEFAULT NOW(),
+        ends_at TIMESTAMPTZ NOT NULL,
+        cancelled_at TIMESTAMPTZ,
+        validity_days INTEGER DEFAULT 0,
         max_users INTEGER DEFAULT 1,
         unlimited_users BOOLEAN DEFAULT false,
-        has_support BOOLEAN DEFAULT false,
-        has_updates BOOLEAN DEFAULT false,
-        is_active BOOLEAN DEFAULT true,
         created_at TIMESTAMPTZ DEFAULT NOW(),
         updated_at TIMESTAMPTZ DEFAULT NOW()
       );
 
-      CREATE TABLE IF NOT EXISTS "${schema}".subscriptions (
-        id SERIAL PRIMARY KEY,
-        user_id INTEGER,
-        plan_id INTEGER REFERENCES "${schema}".plans(id),
-        status VARCHAR(20) DEFAULT 'active',
-        start_date DATE NOT NULL,
-        end_date DATE NOT NULL,
-        days_remaining INTEGER GENERATED ALWAYS AS (end_date - CURRENT_DATE) STORED,
-        cancelled_at TIMESTAMPTZ,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
-      );
+      -- Migrate existing tables: add columns if missing (idempotent)
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_id VARCHAR(255) NOT NULL DEFAULT '';
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_name VARCHAR(255);
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_daily_rate INTEGER DEFAULT 0;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_validity_days INTEGER DEFAULT 30;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_price INTEGER DEFAULT 0;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_discount INTEGER DEFAULT 0;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS plan_discounted_price INTEGER DEFAULT 0;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS starts_at TIMESTAMPTZ DEFAULT NOW();
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS ends_at TIMESTAMPTZ DEFAULT NOW();
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS validity_days INTEGER DEFAULT 0;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS max_users INTEGER DEFAULT 1;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS unlimited_users BOOLEAN DEFAULT false;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+
+      -- Copy data from old columns (start_date/end_date) to new columns (starts_at/ends_at)
+      DO $$ BEGIN
+        UPDATE "${schema}".subscription SET starts_at = start_date::timestamptz WHERE starts_at IS NULL AND start_date IS NOT NULL;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN
+        UPDATE "${schema}".subscription SET ends_at = end_date::timestamptz WHERE ends_at IS NULL AND end_date IS NOT NULL;
+      EXCEPTION WHEN OTHERS THEN NULL; END $$;
     `;
 
     return this.runQuery(tenantId, databaseUrl, sql);

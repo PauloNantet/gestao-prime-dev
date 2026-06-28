@@ -1,15 +1,19 @@
 import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
+import { SubscriptionDbService } from '../../common/database/subscription-db.service';
 import type { CreateProductDto, UpdateProductDto } from '@gestao-prime/shared';
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private subscriptionDb: SubscriptionDbService,
+  ) {}
 
   async findAll() {
     return this.prisma.product.findMany({
       orderBy: { name: 'asc' },
-      include: { plans: { include: { plan: true } } },
+      include: { plans: true },
     });
   }
 
@@ -23,7 +27,7 @@ export class ProductsService {
   async findById(id: string) {
     const product = await this.prisma.product.findUnique({
       where: { id },
-      include: { plans: { include: { plan: true } } },
+      include: { plans: true },
     });
     if (!product) throw new NotFoundException('Produto não encontrado');
     return product;
@@ -39,11 +43,9 @@ export class ProductsService {
         name: dto.name,
         slug,
         description: dto.description,
+        price: dto.price ?? 0,
         githubRepo: dto.githubRepo || '',
         githubBranch: dto.githubBranch || 'master',
-        icon: dto.icon,
-        monthlyPrice: dto.monthlyPrice ? Math.round(dto.monthlyPrice * 100) : 0,
-        basePrice: dto.basePrice ? Math.round(dto.basePrice * 100) : 0,
         projectId: dto.projectId,
       },
     });
@@ -51,14 +53,18 @@ export class ProductsService {
 
   async update(id: string, dto: UpdateProductDto) {
     await this.findById(id);
-    const data: any = { ...dto };
-    if (dto.monthlyPrice !== undefined) data.monthlyPrice = Math.round(dto.monthlyPrice * 100);
-    if (dto.basePrice !== undefined) data.basePrice = Math.round(dto.basePrice * 100);
-    return this.prisma.product.update({ where: { id }, data });
+    const { slug: _slug, ...rest } = dto;
+    return this.prisma.product.update({ where: { id }, data: rest });
   }
 
   async remove(id: string) {
-    await this.findById(id);
+    const product = await this.findById(id);
+
+    for (const plan of product.plans) {
+      await this.subscriptionDb.removeByPlan(plan.id);
+    }
+
+    await this.prisma.plan.deleteMany({ where: { productId: id } });
     await this.prisma.product.delete({ where: { id } });
     return { message: 'Produto removido com sucesso' };
   }

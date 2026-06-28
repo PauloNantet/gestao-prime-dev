@@ -34,7 +34,7 @@ export class ProductsController {
     @Req() req: Request,
   ) {
     const result = await this.products.create(dto);
-    if (user.tenantId) {
+    if (user?.tenantId) {
       this.monitoring.log({
         tenantId: user.tenantId,
         userId: user.id,
@@ -57,7 +57,7 @@ export class ProductsController {
     @Req() req: Request,
   ) {
     const result = await this.products.update(id, dto);
-    if (user.tenantId) {
+    if (user?.tenantId) {
       this.monitoring.log({
         tenantId: user.tenantId,
         userId: user.id,
@@ -79,13 +79,14 @@ export class ProductsController {
     @Req() req: Request,
   ) {
     const result = await this.products.remove(id);
-    if (user.tenantId) {
+    if (user?.tenantId) {
       this.monitoring.log({
         tenantId: user.tenantId,
         userId: user.id,
         action: ActionType.DELETE,
         entity: 'product',
         entityId: id,
+        metadata: {},
         ip: req.ip,
         userAgent: req.headers['user-agent'],
       });
