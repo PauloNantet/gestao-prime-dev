@@ -62,7 +62,25 @@ export class SubscriptionDbService {
       CREATE SCHEMA IF NOT EXISTS "${schema}";
 
       CREATE TABLE IF NOT EXISTS "${schema}".subscription (
-        id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+        id SERIAL PRIMARY KEY,
+
+        -- Tenant mirror fields (exact same names as Tenant table)
+        tenant_id UUID,
+        name VARCHAR(255),
+        slug VARCHAR(255),
+        document VARCHAR(20),
+        email VARCHAR(255),
+        phone VARCHAR(20),
+        database_url VARCHAR(500),
+        database_name VARCHAR(255),
+        settings TEXT DEFAULT '{}',
+        asaas_customer_id VARCHAR(255),
+        status VARCHAR(50) DEFAULT 'trial',
+        additional_days INTEGER DEFAULT 0,
+        created_at TIMESTAMPTZ DEFAULT NOW(),
+        updated_at TIMESTAMPTZ DEFAULT NOW(),
+
+        -- Plan fields
         plan_id VARCHAR(255) NOT NULL DEFAULT '',
         plan_name VARCHAR(255),
         plan_daily_rate INTEGER DEFAULT 0,
@@ -70,22 +88,12 @@ export class SubscriptionDbService {
         plan_price INTEGER DEFAULT 0,
         plan_discount INTEGER DEFAULT 0,
         plan_discounted_price INTEGER DEFAULT 0,
-        status VARCHAR(50) DEFAULT 'trial',
         starts_at TIMESTAMPTZ DEFAULT NOW(),
         ends_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
         cancelled_at TIMESTAMPTZ,
         validity_days INTEGER DEFAULT 0,
         max_users INTEGER DEFAULT 1,
-        unlimited_users BOOLEAN DEFAULT false,
-        tenant_name VARCHAR(255),
-        tenant_slug VARCHAR(255),
-        tenant_document VARCHAR(20),
-        tenant_email VARCHAR(255),
-        tenant_phone VARCHAR(20),
-        tenant_status VARCHAR(50) DEFAULT 'trial',
-        tenant_additional_days INTEGER DEFAULT 0,
-        created_at TIMESTAMPTZ DEFAULT NOW(),
-        updated_at TIMESTAMPTZ DEFAULT NOW()
+        unlimited_users BOOLEAN DEFAULT false
       );
 
       DO $$ BEGIN
@@ -124,39 +132,18 @@ export class SubscriptionDbService {
       DO $$ BEGIN
         ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS unlimited_users BOOLEAN DEFAULT false;
       EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_name VARCHAR(255);
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_slug VARCHAR(255);
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_document VARCHAR(20);
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_email VARCHAR(255);
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_phone VARCHAR(20);
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_status VARCHAR(50) DEFAULT 'trial';
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_additional_days INTEGER DEFAULT 0;
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ALTER COLUMN start_date DROP NOT NULL;
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        ALTER TABLE "${schema}".subscription ALTER COLUMN end_date DROP NOT NULL;
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        UPDATE "${schema}".subscription SET starts_at = start_date::timestamptz WHERE starts_at IS NULL AND start_date IS NOT NULL;
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
-      DO $$ BEGIN
-        UPDATE "${schema}".subscription SET ends_at = end_date::timestamptz WHERE ends_at IS NULL AND end_date IS NOT NULL;
-      EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      -- Tenant mirror columns (exact names as Tenant table)
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS tenant_id UUID; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS name VARCHAR(255); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS slug VARCHAR(255); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS document VARCHAR(20); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS email VARCHAR(255); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS phone VARCHAR(20); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS database_url VARCHAR(500); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS database_name VARCHAR(255); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS settings TEXT DEFAULT '{}'; EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS asaas_customer_id VARCHAR(255); EXCEPTION WHEN OTHERS THEN NULL; END $$;
+      DO $$ BEGIN ALTER TABLE "${schema}".subscription ADD COLUMN IF NOT EXISTS additional_days INTEGER DEFAULT 0; EXCEPTION WHEN OTHERS THEN NULL; END $$;
     `;
     try {
       await this.tenantDb.runQuery(tenantId, dbUrl, migrationSql);
@@ -250,16 +237,24 @@ export class SubscriptionDbService {
       const updateResult = await this.tenantDb.runQuery(
         tenantId, dbUrl,
         `UPDATE "${schema}".subscription
-         SET tenant_name = $1, tenant_slug = $2, tenant_document = $3, tenant_email = $4,
-             tenant_phone = $5, tenant_status = $6, tenant_additional_days = $7, updated_at = NOW()`,
+         SET tenant_id = $1, name = $2, slug = $3, document = $4, email = $5,
+             phone = $6, database_url = $7, database_name = $8, settings = $9,
+             asaas_customer_id = $10, status = $11, additional_days = $12,
+             created_at = $13, updated_at = NOW()`,
         [
+          tenant.id,
           tenant.name,
           tenant.slug,
           tenant.document || null,
           tenant.email,
           tenant.phone || null,
+          tenant.databaseUrl,
+          tenant.databaseName,
+          tenant.settings || '{}',
+          tenant.asaasCustomerId || null,
           tenant.status,
           tenant.additionalDays,
+          tenant.createdAt,
         ],
       );
 
@@ -267,16 +262,22 @@ export class SubscriptionDbService {
         await this.tenantDb.runQuery(
           tenantId, dbUrl,
           `INSERT INTO "${schema}".subscription
-           (tenant_name, tenant_slug, tenant_document, tenant_email, tenant_phone, tenant_status, tenant_additional_days)
-           VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+           (tenant_id, name, slug, document, email, phone, database_url, database_name, settings, asaas_customer_id, status, additional_days, created_at, updated_at)
+           VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, NOW())`,
           [
+            tenant.id,
             tenant.name,
             tenant.slug,
             tenant.document || null,
             tenant.email,
             tenant.phone || null,
+            tenant.databaseUrl,
+            tenant.databaseName,
+            tenant.settings || '{}',
+            tenant.asaasCustomerId || null,
             tenant.status,
             tenant.additionalDays,
+            tenant.createdAt,
           ],
         );
       }
