@@ -34,16 +34,12 @@ export class MonitoringService {
     ip?: string;
     userAgent?: string;
   }) {
-    try {
-      return await this.prisma.auditLog.create({
-        data: {
-          ...data,
-          metadata: data.metadata ? JSON.stringify(data.metadata) : null,
-        },
-      });
-    } catch (err) {
-      this.logger.warn(`AuditLog não registrado: ${err instanceof Error ? err.message : 'erro desconhecido'}`);
-    }
+    return this.prisma.auditLog.create({
+      data: {
+        ...data,
+        metadata: data.metadata ? JSON.stringify(data.metadata) : null,
+      },
+    });
   }
 
   private parseSettings(settings: string | null): Record<string, unknown> {
@@ -114,15 +110,13 @@ export class MonitoringService {
   }
 
   async getDashboardStats() {
-    const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-    const [totalTenants, totalUsers, activeSubscriptions, last24hActions] = await Promise.all([
+    const [totalTenants, totalUsers, activeSubscriptions] = await Promise.all([
       this.prisma.tenant.count(),
       this.prisma.user.count({ where: { role: { not: 'super_admin' } } }),
-      this.prisma.tenant.count({ where: { status: 'active' } }),
-      this.prisma.auditLog.count({ where: { createdAt: { gte: twentyFourHoursAgo } } }),
+      this.prisma.subscription.count({ where: { status: 'active' } }),
     ]);
 
-    return { totalTenants, totalUsers, activeSubscriptions, last24hActions };
+    return { totalTenants, totalUsers, activeSubscriptions };
   }
 
   async exportLogs(tenantId: string, from?: string, to?: string) {

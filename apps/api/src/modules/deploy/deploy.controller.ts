@@ -1,13 +1,9 @@
-import { Controller, Post, Get, Put, Delete, Param, Query, Body, NotFoundException } from '@nestjs/common';
+import { Controller, Post, Get, Put, Delete, Param, Query, Body } from '@nestjs/common';
 import { DeployService } from './deploy.service';
-import { PrismaService } from '../../prisma/prisma.service';
 
 @Controller('deploy')
 export class DeployController {
-  constructor(
-    private deploy: DeployService,
-    private prisma: PrismaService,
-  ) {}
+  constructor(private deploy: DeployService) {}
 
   @Get('railway/projects')
   getRailwayProjects() {
@@ -27,32 +23,9 @@ export class DeployController {
     return this.deploy.getProjectVariables(projectId, environmentId);
   }
 
-  @Get('railway/projects/:projectId/services')
-  getProjectServices(@Param('projectId') projectId: string) {
-    return this.deploy.getProjectServices(projectId);
-  }
-
-  @Get('railway/projects/:projectId/services/:serviceId/variables')
-  getServiceVariables(
-    @Param('projectId') projectId: string,
-    @Param('serviceId') serviceId: string,
-    @Query('environmentId') environmentId: string,
-  ) {
-    return this.deploy.getServiceVariables(projectId, environmentId, serviceId);
-  }
-
   @Post(':tenantId/product/:productId')
-  async deployProduct(@Param('tenantId') tenantId: string, @Param('productId') productId: string) {
-    const product = await this.prisma.product.findUnique({ where: { id: productId } });
-    if (!product) throw new NotFoundException('Produto não encontrado');
-    const tenant = await this.prisma.tenant.findUnique({ where: { id: tenantId } });
-    return this.deploy.deployProduct(tenantId, tenant?.slug || '', {
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      githubRepo: product.githubRepo,
-      githubBranch: product.githubBranch,
-    });
+  deployProduct(@Param('tenantId') tenantId: string, @Param('productId') productId: string) {
+    return this.deploy.deployProduct(tenantId, '', { id: productId, name: '', slug: '', githubRepo: '', githubBranch: '' });
   }
 
   @Get('railway/projects/:projectId/database-info')

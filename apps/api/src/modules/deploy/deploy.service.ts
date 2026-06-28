@@ -32,80 +32,54 @@ export class DeployService {
 
   async getRailwayProjects() {
     if (!this.RAILWAY_API_TOKEN) return [];
-    try {
-      const query = `
-        query {
-          projects {
-            edges {
-              node {
-                id
-                name
-                description
-                createdAt
-                updatedAt
-              }
+    const query = `
+      query {
+        projects {
+          edges {
+            node {
+              id
+              name
+              description
+              createdAt
+              updatedAt
             }
           }
         }
-      `;
-      const data = await this.railwayRequest<{ projects: { edges: Array<{ node: any }> } }>(query);
-      return (data.projects?.edges || []).map(e => e.node);
-    } catch {
-      return [];
-    }
-  }
-
-  private async safeRailwayRequest<T>(query: string, variables?: Record<string, any>): Promise<T | null> {
-    try {
-      return await this.railwayRequest<T>(query, variables);
-    } catch {
-      return null;
-    }
+      }
+    `;
+    const data = await this.railwayRequest<{ projects: { edges: Array<{ node: any }> } }>(query);
+    return (data.projects?.edges || []).map(e => e.node);
   }
 
   async getProjectEnvironments(projectId: string) {
     if (!this.RAILWAY_API_TOKEN) return [];
-    const data = await this.safeRailwayRequest<{ project: { environments: { edges: Array<{ node: any }> } } }>(
-      `query GetProject($projectId: String!) {
+    const query = `
+      query GetProject($projectId: String!) {
         project(id: $projectId) {
           environments {
-            edges { node { id name } }
+            edges {
+              node {
+                id
+                name
+              }
+            }
           }
         }
-      }`, { projectId });
-    return data?.project?.environments?.edges?.map(e => e.node) || [];
-  }
-
-  async getProjectServices(projectId: string) {
-    if (!this.RAILWAY_API_TOKEN) return [];
-    const data = await this.safeRailwayRequest<{ project: { services: { edges: Array<{ node: any }> } } }>(
-      `query GetProject($projectId: String!) {
-        project(id: $projectId) {
-          services {
-            edges { node { id name } }
-          }
-        }
-      }`, { projectId });
-    return data?.project?.services?.edges?.map(e => e.node) || [];
-  }
-
-  async getServiceVariables(projectId: string, environmentId: string, serviceId: string) {
-    if (!this.RAILWAY_API_TOKEN) return [];
-    const data = await this.safeRailwayRequest<{ variables: Record<string, string> }>(
-      `query GetVariables($projectId: String!, $environmentId: String!, $serviceId: String!) {
-        variables(projectId: $projectId, environmentId: $environmentId, serviceId: $serviceId)
-      }`, { projectId, environmentId, serviceId });
-    if (!data?.variables) return [];
-    return Object.entries(data.variables).map(([name, value]) => ({ name, value }));
+      }
+    `;
+    const data = await this.railwayRequest<{ project: { environments: { edges: Array<{ node: any }> } } }>(query, { projectId });
+    return data.project?.environments?.edges?.map(e => e.node) || [];
   }
 
   async getProjectVariables(projectId: string, environmentId: string) {
     if (!this.RAILWAY_API_TOKEN) return [];
-    const data = await this.safeRailwayRequest<{ variables: Record<string, string> }>(
-      `query GetVariables($projectId: String!, $environmentId: String!) {
+    const query = `
+      query GetVariables($projectId: String!, $environmentId: String!) {
         variables(projectId: $projectId, environmentId: $environmentId)
-      }`, { projectId, environmentId });
-    if (!data?.variables) return [];
+      }
+    `;
+    const data = await this.railwayRequest<{ variables: Record<string, string> }>(query, { projectId, environmentId });
+    if (!data.variables) return [];
     return Object.entries(data.variables).map(([name, value]) => ({ name, value }));
   }
 
@@ -437,12 +411,103 @@ export class DeployService {
     });
   }
 
-  async syncPlanToProductEnvironments(_productId: string, _planData: any) {
-    return { synced: 0, total: 0, errors: [], message: 'Sync desabilitado' };
+  private async ensurePlansTable(databaseUrl: string) {
+    await this.withDb(databaseUrl, async (pool) => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS plans (
+          id SERIAL PRIMARY KEY,
+          name TEXT NOT NULL UNIQUE,
+          period_months INTEGER NOT NULL DEFAULT 1,
+          monthly_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+          total_price DECIMAL(10,2) NOT NULL DEFAULT 0,
+          max_users INTEGER NOT NULL DEFAULT 1,
+          has_support BOOLEAN NOT NULL DEFAULT false,
+          has_updates BOOLEAN NOT NULL DEFAULT false,
+          is_active BOOLEAN NOT NULL DEFAULT true,
+          unlimited_users BOOLEAN NOT NULL DEFAULT false,
+          savings TEXT NOT NULL DEFAULT '',
+          created_at TIMESTAMP NOT NULL DEFAULT NOW()
+        )
+      `);
+    });
   }
 
-  async deletePlanFromProductEnvironments(_productId: string, _planName: string) {
-    return { deleted: 0, total: 0 };
+  private planIntervalToMonths(interval: string, count: number): number {
+    const multiplier: Record<string, number> = { monthly: 1, quarterly: 3, semestral: 6, yearly: 12 };
+    return (multiplier[interval] || 1) * count;
+  }
+
+  async syncPlanToProductEnvironments(productId: string, planData: { name: string; description: string | null; price: number; interval: string; intervalCount: number; features: string; active: boolean; maxUsers: number; unlimitedUsers: boolean; hasSupport: boolean; hasUpdates: boolean; originalName?: string }) {
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product?.projectId) return { synced: 0, message: 'Produto sem projeto Railway' };
+
+    const databases = await this.prisma.projectDatabase.findMany({
+      where: { projectId: product.projectId },
+    });
+
+    if (databases.length === 0) return { synced: 0, message: 'Nenhum banco configurado para este projeto' };
+
+    const monthlyPrice = planData.price / 100;
+    const periodMonths = this.planIntervalToMonths(planData.interval, planData.intervalCount);
+    const totalPrice = monthlyPrice * periodMonths;
+
+    const basePrice = product.basePrice / 100;
+    const anualProjection = monthlyPrice * 12;
+    const savings = basePrice > 0 ? `${Math.round(((basePrice - anualProjection) / basePrice) * 100)}%` : '';
+
+    const lookupName = planData.originalName || planData.name;
+
+    let synced = 0;
+    const errors: string[] = [];
+
+    for (const db of databases) {
+      try {
+        await this.ensurePlansTable(db.databaseUrl);
+        await this.withDb(db.databaseUrl, async (pool) => {
+          const exists = await pool.query(`SELECT id FROM plans WHERE name = $1`, [lookupName]);
+
+          if (exists.rows.length > 0) {
+            await pool.query(`
+              UPDATE plans SET name = $2, period_months = $3, monthly_price = $4, total_price = $5,
+                max_users = $6, has_support = $7, has_updates = $8, is_active = $9,
+                unlimited_users = $10, savings = $11
+              WHERE name = $1
+            `, [lookupName, planData.name, periodMonths, monthlyPrice, totalPrice, planData.maxUsers, planData.hasSupport, planData.hasUpdates, planData.active, planData.unlimitedUsers, savings]);
+          } else {
+            await pool.query(`
+              INSERT INTO plans (name, period_months, monthly_price, total_price, max_users, has_support, has_updates, is_active, unlimited_users, savings, created_at)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+            `, [planData.name, periodMonths, monthlyPrice, totalPrice, planData.maxUsers, planData.hasSupport, planData.hasUpdates, planData.active, planData.unlimitedUsers, savings, new Date()]);
+          }
+        });
+        synced++;
+      } catch (err: any) {
+        errors.push(`${db.environmentName}: ${err.message}`);
+      }
+    }
+
+    return { synced, total: databases.length, errors };
+  }
+
+  async deletePlanFromProductEnvironments(productId: string, planName: string) {
+    const product = await this.prisma.product.findUnique({ where: { id: productId } });
+    if (!product?.projectId) return { deleted: 0 };
+
+    const databases = await this.prisma.projectDatabase.findMany({
+      where: { projectId: product.projectId },
+    });
+
+    let deleted = 0;
+    for (const db of databases) {
+      try {
+        await this.ensurePlansTable(db.databaseUrl);
+        await this.withDb(db.databaseUrl, async (pool) => {
+          await pool.query(`DELETE FROM plans WHERE name = $1`, [planName]);
+        });
+        deleted++;
+      } catch {}
+    }
+    return { deleted, total: databases.length };
   }
 
   async getDeployments(tenantId: string) {

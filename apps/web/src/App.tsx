@@ -5,6 +5,7 @@ import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
 import { DashboardPage } from './pages/DashboardPage';
 import { TenantsPage } from './pages/TenantsPage';
+import { PlansPage } from './pages/PlansPage';
 import { ProductsPage } from './pages/ProductsPage';
 import { ProductPlansPage } from './pages/ProductPlansPage';
 import { CheckoutPage } from './pages/CheckoutPage';
@@ -36,6 +37,7 @@ export default function App() {
       >
         <Route index element={<DashboardPage />} />
         <Route path="tenants" element={<TenantsPage />} />
+        <Route path="plans" element={<PlansPage />} />
         <Route path="products" element={<ProductsPage />} />
         <Route path="products/:productId/plans" element={<ProductPlansPage />} />
         <Route path="monitoring" element={<MonitoringPage />} />

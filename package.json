@@ -18,8 +18,5 @@
     "turbo": "^2.5.0",
     "typescript": "^5.8.0"
   },
-  "packageManager": "npm@11.15.0",
-  "dependencies": {
-    "chokidar": "^5.0.0"
-  }
+  "packageManager": "npm@11.15.0"
 }

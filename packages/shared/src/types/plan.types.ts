@@ -1,34 +1,41 @@
+export enum PlanInterval {
+  MONTHLY = 'monthly',
+  QUARTERLY = 'quarterly',
+  SEMESTRAL = 'semestral',
+  YEARLY = 'yearly',
+}
+
 export interface Plan {
   id: string;
   name: string;
-  dailyRate: number;
-  validityDays: number;
+  description: string | null;
   price: number;
-  discount: number;
-  discountedPrice: number;
-  savings: number;
+  interval: PlanInterval;
+  intervalCount: number;
+  features: string[];
   maxUsers: number;
   unlimitedUsers: boolean;
   hasSupport: boolean;
   hasUpdates: boolean;
+  savings: string;
   active: boolean;
-  position: number;
-  productId: string;
-  product?: { id: string; name: string; slug: string };
+  products?: { product: { id: string; name: string; slug: string; githubRepo: string } }[];
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreatePlanDto {
   name: string;
-  dailyRate: number;
-  validityDays?: number;
-  discount?: number;
+  description?: string;
+  price: number;
+  interval: PlanInterval;
+  intervalCount: number;
+  features?: string[];
+  productIds?: string[];
   maxUsers?: number;
   unlimitedUsers?: boolean;
   hasSupport?: boolean;
   hasUpdates?: boolean;
-  productId: string;
 }
 
 export interface UpdatePlanDto extends Partial<CreatePlanDto> {

@@ -1,4 +1,4 @@
-export enum EntityStatus {
+export enum TenantStatus {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   SUSPENDED = 'suspended',
@@ -16,12 +16,12 @@ export interface Tenant {
   document: string | null;
   email: string;
   phone: string | null;
-  status: EntityStatus;
+  status: TenantStatus;
   databaseUrl: string;
   databaseName: string;
+  subscriptionId: string | null;
   settings: Record<string, unknown>;
-  additionalDays: number;
-  products?: { id: string; name: string; icon: string | null }[];
+  products?: { product: { id: string; name: string; icon: string | null } }[];
   createdAt: string;
   updatedAt: string;
 }
@@ -33,10 +33,10 @@ export interface CreateTenantDto {
   email: string;
   phone?: string;
   databaseUrl?: string;
-  planId?: string;
+  planId: string;
   status?: string;
   settings?: Record<string, unknown>;
-  additionalDays?: number;
+  productIds?: string[];
 }
 
 export interface UpdateTenantDto {
@@ -44,8 +44,8 @@ export interface UpdateTenantDto {
   document?: string;
   email?: string;
   phone?: string;
-  status?: EntityStatus;
+  status?: TenantStatus;
   planId?: string;
   settings?: Record<string, unknown>;
-  additionalDays?: number;
+  productIds?: string[];
 }

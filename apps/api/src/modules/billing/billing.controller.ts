@@ -1,6 +1,5 @@
 import { Controller, Post, Get, Param, Body } from '@nestjs/common';
 import { BillingService } from './billing.service';
-import { Public } from '../../common/decorators/public.decorator';
 
 @Controller('billing')
 export class BillingController {
@@ -11,7 +10,6 @@ export class BillingController {
     return this.billing.checkout(tenantId, paymentMethod);
   }
 
-  @Public()
   @Post('webhook/asaas')
   handleWebhook(@Body() body: any) {
     if (body.event === 'PAYMENT_RECEIVED' || body.event === 'PAYMENT_CONFIRMED') {

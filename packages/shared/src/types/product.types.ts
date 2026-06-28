@@ -3,9 +3,11 @@ export interface Product {
   name: string;
   slug: string;
   description: string | null;
-  price: number;
   githubRepo: string;
   githubBranch: string;
+  icon: string | null;
+  monthlyPrice: number;
+  basePrice: number;
   projectId: string | null;
   active: boolean;
   createdAt: string;
@@ -16,9 +18,11 @@ export interface CreateProductDto {
   name: string;
   slug: string;
   description?: string;
-  price?: number;
   githubRepo?: string;
   githubBranch?: string;
+  icon?: string;
+  monthlyPrice?: number;
+  basePrice?: number;
   projectId?: string;
 }
 

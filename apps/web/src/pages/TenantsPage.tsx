@@ -8,11 +8,10 @@ interface Tenant {
   email: string;
   status: string;
   document: string | null;
-  subscription?: { planId: string; planName: string; endsAt: string; status: string };
-  products?: { id: string; name: string; icon: string | null }[];
+  subscription?: { planId: string; plan: { name: string }; endsAt: string; daysRemaining: number; status: string };
+  products?: { product: { id: string; name: string; icon: string | null } }[];
   createdAt: string;
   settings: Record<string, any>;
-  additionalDays: number;
 }
 
 interface RailwayProject {
@@ -25,31 +24,14 @@ interface ProjectDatabase {
   projectId: string; environmentId: string; projectName: string; environmentName: string; databaseUrl: string;
 }
 
-function computeDaysRemaining(endsAt: string): number {
-  const end = new Date(endsAt);
-  const now = new Date();
-  const diff = end.getTime() - now.getTime();
-  return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)));
-}
-
-function getEndDate(tenant: any): string | null {
-  if (tenant.subscription?.endsAt) return tenant.subscription.endsAt;
-  if (tenant.additionalDays && tenant.createdAt) {
-    const d = new Date(tenant.createdAt);
-    d.setDate(d.getDate() + Number(tenant.additionalDays));
-    return d.toISOString();
-  }
-  return null;
-}
-
 export function TenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editingTenant, setEditingTenant] = useState<any>(null);
-  const [form, setForm] = useState({ name: '', slug: '', email: '', document: '', planId: '', status: 'active', projectId: '', environmentId: '', databaseUrl: '', additionalDays: 0 });
+  const [form, setForm] = useState({ name: '', slug: '', email: '', document: '', productIds: [] as string[], planId: '', status: 'trial', projectId: '', environmentId: '', databaseUrl: '' });
+  const [products, setProducts] = useState<{ id: string; name: string; icon: string | null }[]>([]);
   const [plans, setPlans] = useState<{ id: string; name: string }[]>([]);
-  const [isTrial, setIsTrial] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<any>(null);
   const [error, setError] = useState('');
 
@@ -80,6 +62,7 @@ export function TenantsPage() {
 
   useEffect(() => {
     loadTenants();
+    api.get('/products/active').then((res) => setProducts(res.data));
     api.get('/plans').then((res) => setPlans(res.data)).catch(() => {});
     api.get('/deploy/railway/projects').then((res) => setProjects(res.data)).catch(() => {});
     api.get('/deploy/project-databases').then((res) => {
@@ -113,27 +96,23 @@ export function TenantsPage() {
 
   const openCreate = () => {
     setEditingTenant(null);
-    setIsTrial(false);
-    setForm({ name: '', slug: '', email: '', document: '', planId: '', status: 'active', projectId: '', environmentId: '', databaseUrl: '', additionalDays: 0 });
+    setForm({ name: '', slug: '', email: '', document: '', productIds: [], planId: '', status: 'trial', projectId: '', environmentId: '', databaseUrl: '' });
     setShowModal(true);
   };
 
   const openEdit = (tenant: any) => {
     setEditingTenant(tenant);
-    const settings = tenant.settings || {};
-    const trial = tenant.status === 'trial';
-    setIsTrial(trial);
     setForm({
       name: tenant.name,
       slug: tenant.slug,
       email: tenant.email,
       document: tenant.document || '',
-      planId: trial ? '' : (tenant.subscription?.planId || ''),
+      productIds: tenant.products?.map((p: any) => p.product.id) || [],
+      planId: tenant.subscription?.planId || '',
       status: tenant.status || 'active',
-      projectId: settings.railwayProjectId || '',
-      environmentId: settings.railwayEnvironmentId || '',
-      databaseUrl: settings.railwayDatabaseUrl || '',
-      additionalDays: tenant.additionalDays ?? 0,
+      projectId: '',
+      environmentId: '',
+      databaseUrl: '',
     });
     setShowModal(true);
   };
@@ -142,22 +121,16 @@ export function TenantsPage() {
     e.preventDefault();
     try {
       setError('');
-      const { slug, planId, projectId, environmentId, databaseUrl, ...payload } = form;
-
-      const settings: Record<string, any> = {};
-      if (projectId) settings.railwayProjectId = projectId;
-      if (environmentId) settings.railwayEnvironmentId = environmentId;
-      if (databaseUrl) settings.railwayDatabaseUrl = databaseUrl;
-
+      const { productIds, slug, planId, projectId, environmentId, databaseUrl, ...payload } = form;
       if (editingTenant) {
-        await api.put(`/tenants/${editingTenant.id}`, {
-          ...payload,
-          planId: planId || undefined,
-          ...(Object.keys(settings).length ? { settings } : {}),
-        });
+        await api.put(`/tenants/${editingTenant.id}`, { ...payload, slug, productIds, planId: planId || undefined });
       } else {
+        const settings: Record<string, any> = {};
+        if (projectId) settings.railwayProjectId = projectId;
+        if (environmentId) settings.railwayEnvironmentId = environmentId;
+        if (databaseUrl) settings.railwayDatabaseUrl = databaseUrl;
         const tenant = await api.post('/tenants', {
-          ...payload, slug, planId,
+          ...payload, slug, planId, productIds,
           ...(Object.keys(settings).length ? { settings } : {}),
         });
         if (projectId && environmentId && databaseUrl) {
@@ -171,8 +144,7 @@ export function TenantsPage() {
       }
       setShowModal(false);
       setEditingTenant(null);
-      setIsTrial(false);
-      setForm({ name: '', slug: '', email: '', document: '', planId: '', status: 'active', projectId: '', environmentId: '', databaseUrl: '', additionalDays: 0 });
+      setForm({ name: '', slug: '', email: '', document: '', productIds: [], planId: '', status: 'trial', projectId: '', environmentId: '', databaseUrl: '' });
       loadTenants();
     } catch (e: any) {
       setError(e.response?.data?.message || 'Erro ao salvar cliente');
@@ -185,7 +157,7 @@ export function TenantsPage() {
 
   async function openDbBrowser(tenant: any) {
     const dbUrl = getDbUrl(tenant);
-    if (!dbUrl) { alert('Este cliente nao possui uma Database URL configurada.'); return; }
+    if (!dbUrl) { alert('Este cliente não possui uma Database URL configurada.'); return; }
     setDbTenant(tenant);
     setDbTables([]);
     setDbData([]);
@@ -283,6 +255,11 @@ export function TenantsPage() {
     active: 'bg-green-100 text-green-700',
     inactive: 'bg-gray-100 text-gray-500',
     trial: 'bg-blue-100 text-blue-700',
+    suspended: 'bg-red-100 text-red-700',
+    cancelled: 'bg-gray-100 text-gray-500',
+    pending: 'bg-yellow-100 text-yellow-700',
+    overdue: 'bg-orange-100 text-orange-700',
+    onboarding: 'bg-purple-100 text-purple-700',
   };
 
   return (
@@ -320,14 +297,11 @@ export function TenantsPage() {
                 <th className="text-left p-4 font-medium text-gray-600">Encerra em</th>
                 <th className="text-left p-4 font-medium text-gray-600">Dias restantes</th>
                 <th className="text-left p-4 font-medium text-gray-600">Criado em</th>
-                <th className="text-right p-4 font-medium text-gray-600">Acoes</th>
+                <th className="text-right p-4 font-medium text-gray-600">Ações</th>
               </tr>
             </thead>
             <tbody className="divide-y">
-              {tenants.map((t) => {
-                const endDate = getEndDate(t);
-                const daysRemaining = endDate ? computeDaysRemaining(endDate) : null;
-                return (
+              {tenants.map((t) => (
                 <tr key={t.id} className="hover:bg-gray-50">
                   <td className="p-4">
                     <div className="font-medium text-gray-800">{t.name}</div>
@@ -346,33 +320,29 @@ export function TenantsPage() {
                   </td>
                   <td className="p-4">
                     <div className="flex flex-wrap gap-1">
-                      {t.products?.length ? t.products.map((p: any) => (
-                        <span key={p.id} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
-                          {p.name}
+                      {t.products?.length ? t.products.map((tp: any) => (
+                        <span key={tp.product.id} className="inline-block px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                          {tp.product.icon || '📦'} {tp.product.name}
                         </span>
                       )) : <span className="text-gray-400 text-xs">-</span>}
                     </div>
                   </td>
                   <td className="p-4 text-gray-600 text-xs">
-                    {t.status === 'trial' ? 'Trial' : (t.subscription?.planName || '-')}
+                    {t.subscription?.plan?.name || '-'}
                   </td>
                   <td className="p-4 text-gray-600 text-xs">
-                    {getEndDate(t)
-                      ? new Date(getEndDate(t)!).toLocaleDateString('pt-BR')
+                    {t.subscription?.endsAt
+                      ? new Date(t.subscription.endsAt).toLocaleDateString('pt-BR')
                       : '-'}
                   </td>
                   <td className="p-4 text-xs">
-                    {t.status === 'trial' ? (
-                      <span className="font-medium text-blue-600">
-                        {t.additionalDays || 0} dias adicional(is)
-                      </span>
-                    ) : daysRemaining != null ? (
+                    {t.subscription?.daysRemaining != null ? (
                       <span className={`font-medium ${
-                        daysRemaining <= 3 ? 'text-red-600' :
-                        daysRemaining <= 7 ? 'text-amber-600' :
+                        t.subscription.daysRemaining <= 3 ? 'text-red-600' :
+                        t.subscription.daysRemaining <= 7 ? 'text-amber-600' :
                         'text-green-600'
                       }`}>
-                        {daysRemaining} dia(s)
+                        {t.subscription.daysRemaining} dia(s)
                       </span>
                     ) : '-'}
                   </td>
@@ -393,7 +363,7 @@ export function TenantsPage() {
                     </div>
                   </td>
                 </tr>
-              )})}
+              ))}
             </tbody>
           </table>
         )}
@@ -458,91 +428,92 @@ export function TenantsPage() {
                 value={form.status}
                 onChange={(e) => setForm({ ...form, status: e.target.value })}
                 className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                disabled={isTrial}
               >
                 <option value="active">Ativo</option>
+                <option value="trial">Trial</option>
+                <option value="pending">Pendente</option>
+                <option value="onboarding">Onboarding</option>
                 <option value="inactive">Inativo</option>
+                <option value="suspended">Suspenso</option>
+                <option value="overdue">Em atraso</option>
+                <option value="cancelled">Cancelado</option>
               </select>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Dias Adicionais</label>
-              <input
-                type="number"
-                min="0"
-                value={form.additionalDays}
-                onChange={(e) => setForm({ ...form, additionalDays: Math.max(0, parseInt(e.target.value) || 0) })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              />
-              <p className="text-xs text-gray-400 mt-1">Dias extras para ajustar o vencimento do plano</p>
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Projeto Railway</label>
-              <select
-                value={form.projectId}
-                onChange={(e) => setForm({ ...form, projectId: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-              >
-                <option value="">Selecione...</option>
-                {projects.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
-            </div>
-            {form.projectId && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
-                <select
-                  value={form.environmentId}
-                  onChange={(e) => setForm({ ...form, environmentId: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
-                >
-                  <option value="">Selecione...</option>
-                  {loadingEnvs ? <option disabled>Carregando...</option>
-                  : environments.map((e) => (
-                    <option key={e.id} value={e.id}>{e.name}</option>
-                  ))}
-                </select>
-              </div>
-            )}
-            {form.projectId && form.environmentId && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Database URL</label>
-                <input
-                  type="text"
-                  value={form.databaseUrl}
-                  onChange={(e) => setForm({ ...form, databaseUrl: e.target.value })}
-                  placeholder="postgresql://user:pass@host:5432/dbname"
-                  className="w-full px-3 py-2 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
-                />
-              </div>
+            {!editingTenant && (
+              <>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Projeto Railway</label>
+                  <select
+                    value={form.projectId}
+                    onChange={(e) => setForm({ ...form, projectId: e.target.value })}
+                    className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  >
+                    <option value="">Selecione...</option>
+                    {projects.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                {form.projectId && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Ambiente</label>
+                    <select
+                      value={form.environmentId}
+                      onChange={(e) => setForm({ ...form, environmentId: e.target.value })}
+                      className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    >
+                      <option value="">Selecione...</option>
+                      {loadingEnvs ? <option disabled>Carregando...</option>
+                      : environments.map((e) => (
+                        <option key={e.id} value={e.id}>{e.name}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+                {form.projectId && form.environmentId && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Database URL</label>
+                    <input
+                      type="text"
+                      value={form.databaseUrl}
+                      onChange={(e) => setForm({ ...form, databaseUrl: e.target.value })}
+                      placeholder="postgresql://user:pass@host:5432/dbname"
+                      className="w-full px-3 py-2 border rounded-lg text-sm font-mono focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
+                )}
+              </>
             )}
 
             <div>
-              <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
-                <input
-                  type="checkbox"
-                  checked={isTrial}
-                  onChange={(e) => {
-                    const checked = e.target.checked;
-                    setIsTrial(checked);
-                    if (checked) {
-                      setForm((f: any) => ({ ...f, status: 'trial', planId: '' }));
-                    } else {
-                      setForm((f: any) => ({ ...f, status: f.status === 'trial' ? 'active' : f.status }));
-                    }
-                  }}
-                  className="rounded border-gray-300 text-blue-900 focus:ring-blue-500"
-                />
-                Trial (sem plano, usa dias avulsos)
-              </label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Produtos contratados</label>
+              <div className="space-y-1.5 max-h-40 overflow-y-auto border rounded-lg p-2">
+                {products.map((p) => {
+                  const checked = form.productIds.includes(p.id);
+                  return (
+                    <label key={p.id} className={`flex items-center gap-2 px-2 py-1.5 rounded cursor-pointer text-sm ${checked ? 'bg-blue-50 text-blue-800' : 'hover:bg-gray-50'}`}>
+                      <input type="checkbox" checked={checked}
+                        onChange={() => setForm((f: any) => ({
+                          ...f,
+                          productIds: checked ? f.productIds.filter((id: string) => id !== p.id) : [...f.productIds, p.id],
+                        }))}
+                        className="rounded border-gray-300 text-blue-900 focus:ring-blue-500" />
+                      {p.icon || '📦'} {p.name}
+                    </label>
+                  );
+                })}
+                {products.length === 0 && <p className="text-gray-400 text-xs px-2">Nenhum produto disponível</p>}
+              </div>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Plano</label>
               <select
-                required={!isTrial}
+                required
                 value={form.planId}
-                disabled={isTrial}
                 onChange={(e) => setForm({ ...form, planId: e.target.value })}
-                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
               >
-                <option value="">{isTrial ? 'Trial — sem plano' : 'Selecione...'}</option>
+                <option value="">Selecione...</option>
                 {plans.map((p) => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -607,7 +578,7 @@ export function TenantsPage() {
                               {Object.keys(dbData[0]).map((col) => (
                                 <th key={col} className="text-left px-3 py-2 font-medium text-gray-600 whitespace-nowrap">{col}</th>
                               ))}
-                              <th className="px-3 py-2 font-medium text-gray-600 w-16">Acoes</th>
+                              <th className="px-3 py-2 font-medium text-gray-600 w-16">Ações</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y">
@@ -640,7 +611,7 @@ export function TenantsPage() {
                             </label>
                             <input type="text" value={dbFormData[col.name] || ''}
                               onChange={(e) => setDbFormData((p: any) => ({ ...p, [col.name]: e.target.value }))}
-                              placeholder={col.nullable ? 'NULL' : 'obrigatorio'}
+                              placeholder={col.nullable ? 'NULL' : 'obrigatório'}
                               disabled={col.name === dbPrimaryKey && !!dbEditingRow}
                               className="w-full px-2.5 py-1.5 border rounded text-sm focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-gray-100" />
                           </div>
@@ -667,7 +638,7 @@ export function TenantsPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
             <h3 className="text-lg font-bold text-gray-800 mb-2">Excluir Cliente</h3>
-            <p className="text-sm text-gray-600 mb-4">Tem certeza que deseja excluir o cliente <strong>{deleteTarget.name}</strong>? Esta acao nao pode ser desfeita.</p>
+            <p className="text-sm text-gray-600 mb-4">Tem certeza que deseja excluir o cliente <strong>{deleteTarget.name}</strong>? Esta ação não pode ser desfeita.</p>
             {error && <p className="text-sm text-red-600 mb-4 bg-red-50 p-3 rounded-lg">{error}</p>}
             <div className="flex gap-3">
               <button onClick={() => { setDeleteTarget(null); setError(''); }} className="flex-1 py-2.5 border border-gray-300 rounded-lg text-sm font-medium hover:bg-gray-50">Cancelar</button>

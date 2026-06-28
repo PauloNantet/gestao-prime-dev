@@ -1,155 +1,134 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service';
-import { SubscriptionDbService } from '../../common/database/subscription-db.service';
+import { DeployService } from '../deploy/deploy.service';
 import type { CreatePlanDto, UpdatePlanDto } from '@gestao-prime/shared';
 
 @Injectable()
 export class PlansService {
   constructor(
     private prisma: PrismaService,
-    private subscriptionDb: SubscriptionDbService,
+    private deploy: DeployService,
   ) {}
-
-  private planInclude = { product: { select: { id: true, name: true, slug: true } } };
-
-  private calculateValues(data: { dailyRate: number; validityDays: number; discount: number }) {
-    const price = data.dailyRate * data.validityDays;
-    const discountAmount = Math.round(price * (data.discount / 100));
-    const discountedPrice = price - discountAmount;
-    return { price, discountAmount, discountedPrice };
-  }
 
   async findAll() {
     return this.prisma.plan.findMany({
-      orderBy: { position: 'asc' },
-      include: this.planInclude,
+      orderBy: { price: 'asc' },
+      include: { products: { include: { product: true } } },
     });
   }
 
   async findByProduct(productId: string) {
     return this.prisma.plan.findMany({
-      where: { productId },
-      orderBy: { position: 'asc' },
-      include: this.planInclude,
+      where: { products: { some: { productId } } },
+      orderBy: { price: 'asc' },
+      include: { products: { include: { product: true } } },
     });
   }
 
   async findActive() {
     return this.prisma.plan.findMany({
       where: { active: true },
-      orderBy: { position: 'asc' },
-      include: this.planInclude,
+      orderBy: { price: 'asc' },
+      include: { products: { include: { product: true } } },
     });
   }
 
   async findById(id: string) {
     const plan = await this.prisma.plan.findUnique({
       where: { id },
-      include: this.planInclude,
+      include: { products: { include: { product: true } } },
     });
-    if (!plan) throw new NotFoundException('Plano nao encontrado');
+    if (!plan) throw new NotFoundException('Plano não encontrado');
     return plan;
   }
 
-  private async resequence(productId: string) {
-    const plans = await this.prisma.plan.findMany({
-      where: { productId },
-      orderBy: [{ position: 'asc' }, { createdAt: 'asc' }],
-    });
-    await this.prisma.$transaction(
-      plans.map((p, i) => this.prisma.plan.update({ where: { id: p.id }, data: { position: i } })),
-    );
+  private async syncPlanToProducts(productIds: string[], plan: any, originalName?: string) {
+    for (const pid of productIds) {
+      try {
+        await this.deploy.syncPlanToProductEnvironments(pid, {
+          name: plan.name,
+          description: plan.description,
+          price: plan.price,
+          interval: plan.interval,
+          intervalCount: plan.intervalCount,
+          features: plan.features,
+          active: plan.active,
+          maxUsers: plan.maxUsers,
+          unlimitedUsers: plan.unlimitedUsers,
+          hasSupport: plan.hasSupport,
+          hasUpdates: plan.hasUpdates,
+          originalName: originalName || plan.name,
+        });
+      } catch {}
+    }
   }
 
   async create(dto: CreatePlanDto) {
-    await this.resequence(dto.productId);
-
-    const maxPos = await this.prisma.plan.aggregate({
-      where: { productId: dto.productId },
-      _max: { position: true },
-    });
-
-    const dailyRate = Math.round(dto.dailyRate * 100);
-    const validityDays = dto.validityDays ?? 30;
-    const discount = dto.discount ?? 0;
-    const { price, discountAmount, discountedPrice } = this.calculateValues({ dailyRate, validityDays, discount });
-
+    const { productIds, ...planData } = dto;
     const plan = await this.prisma.plan.create({
       data: {
-        name: dto.name,
-        dailyRate,
-        validityDays,
-        price,
-        discount,
-        discountedPrice,
-        savings: discountAmount,
-        maxUsers: dto.maxUsers ?? 1,
-        unlimitedUsers: dto.unlimitedUsers ?? false,
-        hasSupport: dto.hasSupport ?? false,
-        hasUpdates: dto.hasUpdates ?? false,
-        position: (maxPos._max.position ?? -1) + 1,
-        productId: dto.productId,
+        name: planData.name,
+        description: planData.description,
+        price: Math.round(planData.price * 100),
+        interval: planData.interval,
+        intervalCount: planData.intervalCount,
+        features: JSON.stringify(planData.features || []),
+        maxUsers: planData.maxUsers ?? 1,
+        unlimitedUsers: planData.unlimitedUsers ?? false,
+        hasSupport: planData.hasSupport ?? false,
+        hasUpdates: planData.hasUpdates ?? false,
+        products: {
+          create: (productIds || []).map((productId: string) => ({ productId })),
+        },
       },
-      include: this.planInclude,
+      include: { products: { include: { product: true } } },
     });
+
+    if (productIds?.length) {
+      await this.syncPlanToProducts(productIds, plan);
+    }
 
     return plan;
   }
 
   async update(id: string, dto: UpdatePlanDto) {
     const existing = await this.findById(id);
+    const { productIds, ...planData } = dto;
+    const data: any = { ...planData };
+    if (planData.price !== undefined) data.price = Math.round(planData.price * 100);
+    if (data.features !== undefined) data.features = JSON.stringify(data.features);
 
-    const dailyRate = dto.dailyRate !== undefined ? Math.round(dto.dailyRate * 100) : existing.dailyRate;
-    const validityDays = dto.validityDays ?? existing.validityDays;
-    const discount = dto.discount ?? existing.discount;
-    const { price, discountAmount, discountedPrice } = this.calculateValues({ dailyRate, validityDays, discount });
+    if (productIds) {
+      await this.prisma.planProduct.deleteMany({ where: { planId: id } });
+      await this.prisma.planProduct.createMany({
+        data: (productIds || []).map((productId: string) => ({ planId: id, productId })),
+      });
+    }
 
     const plan = await this.prisma.plan.update({
       where: { id },
-      data: {
-        ...dto,
-        dailyRate,
-        validityDays,
-        discount,
-        price,
-        discountedPrice,
-        savings: discountAmount,
-      },
-      include: this.planInclude,
+      data,
+      include: { products: { include: { product: true } } },
     });
+
+    if (productIds?.length) {
+      await this.syncPlanToProducts(productIds, plan, existing.name);
+    }
 
     return plan;
   }
 
-  async reorder(id: string, direction: 'up' | 'down') {
-    const plan = await this.findById(id);
-    const siblings = await this.prisma.plan.findMany({
-      where: { productId: plan.productId },
-      orderBy: { position: 'asc' },
-    });
-
-    const idx = siblings.findIndex(p => p.id === id);
-    if (idx === -1) throw new NotFoundException('Plano nao encontrado');
-
-    const swapIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (swapIdx < 0 || swapIdx >= siblings.length) return plan;
-
-    const a = siblings[idx];
-    const b = siblings[swapIdx];
-
-    await this.prisma.$transaction([
-      this.prisma.plan.update({ where: { id: a.id }, data: { position: b.position } }),
-      this.prisma.plan.update({ where: { id: b.id }, data: { position: a.position } }),
-    ]);
-
-    return this.findById(id);
-  }
-
   async remove(id: string) {
-    await this.findById(id);
+    const existing = await this.findById(id);
+    const productIds = existing.products?.map((p: any) => p.productId) || [];
 
-    await this.subscriptionDb.removeByPlan(id);
+    await this.prisma.planProduct.deleteMany({ where: { planId: id } });
+    await this.prisma.subscription.deleteMany({ where: { planId: id } });
     await this.prisma.plan.delete({ where: { id } });
+
+    for (const pid of productIds) {
+      try { await this.deploy.deletePlanFromProductEnvironments(pid, existing.name); } catch {}
+    }
 
     return { message: 'Plano removido com sucesso' };
   }

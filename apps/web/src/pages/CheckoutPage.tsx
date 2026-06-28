@@ -38,17 +38,18 @@ export function CheckoutPage() {
         <div className="text-4xl mb-4">🚀</div>
         <h1 className="text-2xl font-bold text-gray-800 mb-2">Quase lá!</h1>
         <p className="text-gray-500 mb-6">
-          {tenant?.name} — Plano: {tenant?.subscription?.planName}
+          {tenant?.name} — Plano: {tenant?.subscription?.plan?.name}
         </p>
 
-        {tenant?.subscription && (
+        {tenant?.subscription?.plan && (
           <div className="bg-gray-50 rounded-xl p-4 mb-6">
             <p className="text-sm text-gray-500">Valor</p>
             <p className="text-3xl font-bold text-gray-800">
-              R$ {(tenant.subscription.planPrice / 100).toFixed(2)}
+              R$ {(tenant.subscription.plan.price / 100).toFixed(2)}
             </p>
             <p className="text-xs text-gray-400 mt-1">
-              {tenant.subscription.planValidityDays} dias de acesso
+              {tenant.subscription.plan.intervalCount > 1 ? `${tenant.subscription.plan.intervalCount} ` : ''}
+              {tenant.subscription.plan.interval}
             </p>
           </div>
         )}
